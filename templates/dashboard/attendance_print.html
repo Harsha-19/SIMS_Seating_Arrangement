@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Sheets | SIMS</title>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            .page-break { page-break-after: always; }
+        }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; color: #000; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+        .header h1 { margin: 0; font-size: 22pt; font-weight: 900; text-transform: uppercase; }
+        .header p { margin: 5px 0; font-size: 10pt; font-weight: 700; color: #555; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 20px; font-weight: bold; border: 1px solid #000; padding: 10px; font-size: 11pt; }
+        .info-item { margin: 3px 0; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #000; padding: 8px 10px; text-align: left; font-size: 10pt; }
+        th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; }
+        
+        .footer { margin-top: 40px; display: flex; justify-content: space-between; font-weight: bold; }
+        .signature-box { border-top: 1px solid #000; padding-top: 5px; width: 200px; text-align: center; margin-top: 50px; }
+
+        .print-btn {
+            position: fixed; top: 20px; right: 20px;
+            background: #000; color: #fff; padding: 10px 20px;
+            border-radius: 8px; cursor: pointer; font-weight: bold;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <button class="no-print print-btn" onclick="window.print()">Print Sheets</button>
+
+    {% for room in rooms %}
+        {% for sheet in room.sheets %}
+            <div class="container {% if not forloop.last or not forloop.parentloop.last %}page-break{% endif %}">
+                <div class="header">
+                    <h1>Smart Institutional Management System</h1>
+                    <p>OFFICIAL EXAMINATION ATTENDANCE REGISTER</p>
+                </div>
+
+                <div class="info-grid">
+                    <div>
+                        <div class="info-item">DEPARTMENT: {{ sheet.course }}</div>
+                        <div class="info-item">SEMESTER: {{ sheet.semester }}</div>
+                        <div class="info-item">SUBJECT: {{ exam.subject }}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="info-item">ROOM NO: {{ room.room_number }}</div>
+                        <div class="info-item">DATE: {{ exam.date|date:"d-m-Y" }}</div>
+                        <div class="info-item">TIME: {{ exam.start_time|time:"h:i A" }} - {{ exam.end_time|time:"h:i A" }}</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">SL.</th>
+                            <th style="width: 120px;">UNIVERSITY ID</th>
+                            <th>STUDENT NAME</th>
+                            <th style="width: 120px;">BOOKLET NO.</th>
+                            <th style="width: 150px;">SIGNATURE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in sheet.students %}
+                        <tr>
+                            <td style="text-align: center;">{{ forloop.counter }}</td>
+                            <td style="font-family: monospace; font-weight: bold;">{{ student.university_id }}</td>
+                            <td style="text-transform: uppercase;">{{ student.name }}</td>
+                            <td></td>
+                            <td style="height: 30px;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <div class="signature-box">Invigilator Signature</div>
+                    <div class="signature-box">Superintendent Signature</div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+</body>
+</html>

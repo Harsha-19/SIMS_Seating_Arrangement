@@ -1,0 +1,82 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 📦 Packages / Virtual Environments
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 📝 Django
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+instance/
+.webassets-cache
+.static_root/
+.media_root/
+staticfiles/
+
+# 🌐 Environment Variables
+.env
+.env.test
+.env.local
+
+# 💻 IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 📦 Node / Frontend
+node_modules/
+package-lock.json (ignore if you want it versioned, but standard for JS-heavy apps)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.parcel-cache
+.cache/
+dist/
+
+# 🚀 Logs
+*.log
+logs/
+*.bak
+
+# 🎨 Miscellaneous
+.gemini/
+antigravity/
+.pytest_cache/
+.tox/
+.coverage
+.cache
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.nox/

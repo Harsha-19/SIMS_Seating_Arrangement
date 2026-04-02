@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}Examination Schedule | SIMS{% endblock %}
+
+{% block content %}
+<div class="space-y-10">
+    <!-- Fluid Header -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div class="space-y-2">
+            <nav class="flex items-center gap-2 text-[10px] uppercase font-bold tracking-[0.2em] text-orange-500 mb-2">
+                <a href="/" class="hover:text-blue-600 transition-colors">Calendar</a>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="text-slate-600">Active Exams</span>
+            </nav>
+            <h1 class="text-4xl font-black text-slate-900 tracking-tightest">Exam Schedule</h1>
+            <p class="text-sm text-slate-500 font-medium">Plan and schedule exams for all departments.</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="p-4 bg-white border border-slate-200 rounded-3xl shadow-sm text-center min-w-[120px]">
+                <p class="text-3xl font-black text-slate-900 tabular-nums">{{ exams|length }}</p>
+                <p class="text-[10px] font-black uppercase text-slate-400">Total Sessions</p>
+            </div>
+            <button onclick="openModal()" class="px-8 py-4 bg-orange-500 text-white rounded-3xl text-sm font-black hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/30 flex items-center gap-3">
+                <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                Add Exam
+            </button>
+        </div>
+    </div>
+
+    <!-- Exam Table / Layout -->
+    <div class="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40">
+        <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <form class="flex-1 max-w-md relative group">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-500 transition-colors"></i>
+                <input type="text" placeholder="Search exams..." class="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+            </form>
+            <div class="flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                <button class="px-5 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl">Upcoming</button>
+                <button class="px-5 py-2.5 hover:bg-white text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors">Completed</button>
+                <button class="p-2.5 text-slate-400 hover:text-slate-900 transition-colors"><i data-lucide="sliders" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+
+        {% if exams %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50/50 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-100">
+                    <tr>
+                        <th class="px-10 py-6">Department & Subject</th>
+                        <th class="px-10 py-6">Date & Time</th>
+                        <th class="px-10 py-6">Priority</th>
+                        <th class="px-10 py-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for exam in exams %}
+                    <tr class="group hover:bg-orange-50/30 transition-all duration-300">
+                        <td class="px-10 py-8">
+                            <div class="flex items-center gap-6">
+                                <div class="w-14 h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center text-slate-900 font-black text-xl group-hover:scale-110 group-hover:border-orange-200 transition-all">
+                                    {{ exam.subject|first }}
+                                </div>
+                                <div class="space-y-1">
+                                    <h4 class="font-black text-slate-900 text-lg group-hover:text-orange-600 transition-colors uppercase leading-none">{{ exam.subject }}</h4>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ exam.department.name }} • {{ exam.semester.name }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-10 py-8">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2 text-sm font-black text-slate-900 tabular-nums">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-orange-500"></i>
+                                    {{ exam.start_time|time:"h:i A" }} - {{ exam.end_time|time:"h:i A" }}
+                                    <span class="text-[10px] text-slate-400 font-bold">({{ exam.duration_str }})</span>
+                                </div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 w-fit px-2 py-0.5 rounded italic">
+                                    {{ exam.date|date:"l, M d" }}
+                                </p>
+                            </div>
+                        </td>
+                        <td class="px-10 py-8">
+                            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 uppercase tracking-tighter shadow-sm border border-blue-100 transition-transform group-hover:translate-x-2">
+                                <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                                Primary Queue
+                            </span>
+                        </td>
+                        <td class="px-10 py-8 text-right">
+                            <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <a href="{% url 'dashboard:attendance_generate' %}?exam_id={{ exam.id }}" target="_blank" class="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 rounded-xl transition-all shadow-sm group/btn relative">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                    <span class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity uppercase tracking-widest whitespace-nowrap">Print Sheets</span>
+                                </a>
+                                <button 
+                                    data-id="{{ exam.id|escapejs }}"
+                                    data-subject="{{ exam.subject|escapejs }}"
+                                    data-department="{{ exam.department.id|escapejs }}"
+                                    data-semester="{{ exam.semester.id|escapejs }}"
+                                    data-date="{{ exam.date|date:'Y-m-d'|escapejs }}"
+                                    data-start="{{ exam.start_time|time:'H:i'|escapejs }}"
+                                    data-end="{{ exam.end_time|time:'H:i'|escapejs }}"
+                                    onclick="handleEdit(this)"
+                                    class="p-3 bg-white border border-slate-200 text-slate-400 hover:text-orange-600 hover:border-orange-200 rounded-xl transition-all shadow-sm">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="handleDelete('{{ exam.id|escapejs }}')" class="p-3 bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 rounded-xl transition-all shadow-sm"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-10 py-40 text-center">
+            <div class="w-28 h-28 bg-orange-50 text-orange-200 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+                <i data-lucide="calendar" class="w-12 h-12"></i>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 uppercase">No exams scheduled yet</h3>
+            <p class="text-slate-500 text-sm mt-2 max-w-sm mx-auto font-medium leading-relaxed">Start by adding your first exam subject and date to begin.</p>
+            <button onclick="openModal()" class="mt-10 px-10 py-4 bg-slate-900 text-white rounded-[2rem] text-sm font-black hover:bg-slate-800 transition-all uppercase tracking-widest shadow-2xl shadow-slate-900/30">
+                Add First Exam
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Exam Modal -->
+<div id="examModal" class="hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+    <div class="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-10 animate-in fade-in zoom-in duration-300">
+        <div class="flex items-center justify-between mb-8">
+            <h3 id="modalTitle" class="text-2xl font-black text-slate-900 uppercase">Add Exam</h3>
+            <button onclick="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-all"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="examForm" class="space-y-6">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Subject</label>
+                <input type="text" id="mSubject" name="subject" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Department</label>
+                    <select id="mCourse" name="department" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Semester</label>
+                    <select id="mSemester" name="semester" disabled required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all disabled:opacity-50">
+                        <option value="">Select Department First</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Date</label>
+                    <input type="date" id="mDate" name="date" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Start Time</label>
+                        <input type="time" id="mStartTime" name="start_time" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">End Time</label>
+                        <input type="time" id="mEndTime" name="end_time" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 mt-4">
+                Save
+            </button>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    const modal = document.getElementById('examModal');
+    const form = document.getElementById('examForm');
+    const deptSelect = document.getElementById('mCourse');
+    const semSelect = document.getElementById('mSemester');
+    let editId = '';
+
+    async function syncSemesters(deptId, currentSemId = null) {
+        if (!deptId) {
+            semSelect.innerHTML = '<option value="">Select Department First</option>';
+            semSelect.disabled = true;
+            return;
+        }
+
+        semSelect.disabled = true;
+        semSelect.innerHTML = '<option value="">Loading...</option>';
+
+        try {
+            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
+            const data = await resp.json();
+            
+            semSelect.innerHTML = '';
+            if (data.length === 0) {
+                semSelect.innerHTML = '<option value="">No Semesters Found</option>';
+            } else {
+                data.forEach(sem => {
+                    const opt = document.createElement('option');
+                    opt.value = sem.id;
+                    opt.textContent = sem.name;
+                    if (currentSemId && sem.id == currentSemId) opt.selected = true;
+                    semSelect.appendChild(opt);
+                });
+                semSelect.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            semSelect.innerHTML = '<option value="">Error Loading</option>';
+        }
+    }
+
+    deptSelect.addEventListener('change', (e) => syncSemesters(e.target.value));
+
+    async function openModal(id = '', subject = '', course = '', semester = '', date = '', start = '', end = '') {
+        editId = id;
+        document.getElementById('modalTitle').innerText = id ? 'Edit Exam' : 'Add Exam';
+        document.getElementById('mSubject').value = subject;
+        document.getElementById('mCourse').value = course;
+        
+        await syncSemesters(course, semester);
+        
+        document.getElementById('mDate').value = date;
+        document.getElementById('mStartTime').value = start;
+        document.getElementById('mEndTime').value = end;
+        modal.classList.remove('hidden');
+    }
+
+    function handleEdit(btn) {
+        const d = btn.dataset;
+        openModal(d.id, d.subject, d.department, d.semester, d.date, d.start, d.end);
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        form.reset();
+    }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            subject: document.getElementById('mSubject').value.toUpperCase(),
+            department: document.getElementById('mCourse').value,
+            semester: document.getElementById('mSemester').value,
+            date: document.getElementById('mDate').value,
+            start_time: document.getElementById('mStartTime').value,
+            end_time: document.getElementById('mEndTime').value
+        };
+
+        const url = editId ? `/api/exams/${editId}/` : '/api/exams/';
+        const method = editId ? 'PUT' : 'POST';
+
+        try {
+            const resp = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+            if (resp.ok) {
+                showToast('Exam schedule updated');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Validation failed. Check your date/time values.', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('System execution error', 'error');
+        }
+    };
+
+    async function handleDelete(id) {
+        const confirmed = await showConfirm(
+            'Delete Exam?',
+            'Are you sure? This will also remove any seating plans for this exam.',
+            'Delete'
+        );
+        if (!confirmed) return;
+        try {
+            const res = await fetch(`/api/exams/${id}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            if (res.ok) {
+                showToast('Exam deleted successfully');
+                setTimeout(() => location.reload(), 1000);
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Could not delete exam', 'error');
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %}

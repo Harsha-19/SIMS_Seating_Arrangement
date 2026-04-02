@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Students | SIMS{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <nav class="flex items-center gap-2 text-xs text-slate-400 mb-2 font-medium tracking-tight uppercase">
+                <a href="/" class="hover:text-blue-600">Home</a>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="text-slate-600">Students</span>
+            </nav>
+            <h1 class="text-2xl font-bold text-slate-900">Student List</h1>
+            <p class="text-sm text-slate-500 mt-1">Showing {{ students|length }} students in the system.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="document.getElementById('bulkUploadInput').click()" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
+                <i data-lucide="file-up" class="w-4 h-4 text-blue-600"></i>
+                Upload List
+            </button>
+            <input type="file" id="bulkUploadInput" accept=".xlsx" class="hidden" onchange="handleBulkUpload(event)">
+            <button onclick="openModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Add Student
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
+        <div class="flex-1 relative group">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+            <input id="student-search" type="text" oninput="refreshList()" placeholder="Search for a student..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+        </div>
+        <div class="flex items-center gap-4">
+            <select id="filter-dept" onchange="syncFilterSemesters(this.value); refreshList()" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="filter-sem" onchange="refreshList()" disabled class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
+                <option value="">Select Dept First</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Student Table -->
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        {% if students %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50/80 text-xs font-bold uppercase text-slate-500 border-b border-slate-100">
+                    <tr>
+                        <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">University ID</th>
+                        <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</th>
+                        <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Department & Semester</th>
+                        <th class="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="items-table-body" class="divide-y divide-slate-100">
+                    {% for student in students %}
+                    <tr class="hover:bg-blue-50/30 transition-all group">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
+                                    {{ student.university_id|slice:":2" }}
+                                </div>
+                                <span class="text-sm font-black text-slate-900 tracking-tight">{{ student.university_id }}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5 font-semibold text-slate-900">{{ student.name }}</td>
+                        <td class="px-8 py-5">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
+                                {{ student.department.name }} • {{ student.semester.name }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button onclick="openModal('{{ student.university_id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.department.id|escapejs }}', '{{ student.semester.id|escapejs }}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="handleDelete('{{ student.university_id|escapejs }}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination Section -->
+        <div class="px-8 py-5 bg-slate-50/40 border-t border-slate-100 flex items-center justify-between">
+            <p class="text-xs text-slate-500 font-medium">Showing <span class="text-slate-900">1 to {{ students|length }}</span> of {{ students|length }} results</p>
+            <div class="flex items-center gap-2">
+                <button disabled class="p-2 text-slate-300 cursor-not-allowed">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <div class="flex items-center gap-1">
+                    <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white text-xs font-bold">1</button>
+                </div>
+                <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="p-24 text-center">
+            <div class="w-24 h-24 bg-blue-50 text-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="user-search" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-slate-900 font-bold text-xl uppercase tracking-tight">No students added yet</h3>
+            <p class="text-slate-500 text-sm mt-2 max-w-sm mx-auto leading-relaxed">Start by adding a new student or uploading your student list below.</p>
+            <div class="mt-10 flex items-center justify-center gap-4">
+                <button onclick="openModal()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
+                    Add Student
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="studentModal" class="hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6">
+    <div class="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-10 animate-in fade-in zoom-in duration-300">
+        <div class="flex items-center justify-between mb-8">
+            <h3 id="modalTitle" class="text-2xl font-black text-slate-900 uppercase">Add Student</h3>
+            <button onclick="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl transition-all"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="studentForm" class="space-y-6">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">University ID</label>
+                <input type="text" id="mUsn" name="university_id" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+            </div>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Full Name</label>
+                <input type="text" id="mName" name="name" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Department</label>
+                    <select id="mCourse" name="department" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Semester</label>
+                    <select id="mSemester" name="semester" disabled required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
+                        <option value="">Select Department First</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="w-full py-4 bg-slate-900 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 mt-4 active:scale-95">
+                Save
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const modal = document.getElementById('studentModal');
+    const form = document.getElementById('studentForm');
+    const mDept = document.getElementById('mCourse');
+    const mSem = document.getElementById('mSemester');
+    
+    // Filter Elements
+    const studentSearch = document.getElementById('student-search');
+    const filterDept = document.getElementById('filter-dept');
+    const filterSem = document.getElementById('filter-sem');
+    const tableBody = document.getElementById('items-table-body');
+    
+    let editId = '';
+
+    // Modal Semester Sync
+    async function syncSemesters(deptId, currentSemId = null) {
+        if (!deptId) {
+            mSem.innerHTML = '<option value="">Select Department First</option>';
+            mSem.disabled = true;
+            return;
+        }
+        mSem.disabled = true;
+        mSem.innerHTML = '<option value="">Loading...</option>';
+        try {
+            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
+            const data = await resp.json();
+            mSem.innerHTML = '';
+            data.forEach(sem => {
+                const opt = document.createElement('option');
+                opt.value = sem.id;
+                opt.textContent = sem.name;
+                if (currentSemId && sem.id == currentSemId) opt.selected = true;
+                mSem.appendChild(opt);
+            });
+            mSem.disabled = false;
+        } catch (e) { console.error(e); }
+    }
+
+    // Filter Semester Sync
+    async function syncFilterSemesters(deptId) {
+        if (!deptId) {
+            filterSem.innerHTML = '<option value="">All Semesters</option>';
+            filterSem.disabled = true;
+            return;
+        }
+        filterSem.disabled = true;
+        filterSem.innerHTML = '<option value="">Loading...</option>';
+        try {
+            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
+            const data = await resp.json();
+            filterSem.innerHTML = '<option value="">All Semesters</option>';
+            data.forEach(sem => {
+                const opt = document.createElement('option');
+                opt.value = sem.id;
+                opt.textContent = sem.name;
+                filterSem.appendChild(opt);
+            });
+            filterSem.disabled = false;
+        } catch (e) { console.error(e); }
+    }
+
+    // Main Filter Logic
+    async function refreshList() {
+        const searchVal = studentSearch.value;
+        const deptId = filterDept.value;
+        const semId = filterSem.value;
+        tableBody.style.opacity = '0.5';
+        try {
+            const resp = await fetch(`/api/students/?department_id=${deptId}&semester_id=${semId}&search=${searchVal}`);
+            const students = await resp.json();
+            tableBody.innerHTML = '';
+            tableBody.style.opacity = '1';
+            if (students.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="px-8 py-24 text-center text-slate-400 italic">No students found</td></tr>`;
+                return;
+            }
+            students.forEach(s => {
+                tableBody.innerHTML += `
+                    <tr class="hover:bg-blue-50/30 transition-all group">
+                        <td class="px-8 py-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
+                                    ${s.university_id.slice(0, 2)}
+                                </div>
+                                <span class="text-sm font-black text-slate-900 tracking-tight">${s.university_id}</span>
+                            </div>
+                        </td>
+                        <td class="px-8 py-5 font-semibold text-slate-900">${s.name}</td>
+                        <td class="px-8 py-5">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
+                                ${s.department.name} • ${s.semester.name}
+                            </span>
+                        </td>
+                        <td class="px-8 py-5 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button onclick="openModal('${s.id}', '${s.university_id}', '${s.name}', '${s.department.id}', '${s.semester.id}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="handleDelete('${s.university_id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            lucide.createIcons();
+        } catch (e) { console.error(e); }
+    }
+
+    mDept.onchange = (e) => syncSemesters(e.target.value);
+
+    async function openModal(id = '', university_id = '', name = '', department = '', semester = '') {
+        editId = id;
+        document.getElementById('modalTitle').innerText = id ? 'Edit Student' : 'Add Student';
+        document.getElementById('mUsn').value = university_id;
+        document.getElementById('mName').value = name;
+        mDept.value = department;
+        await syncSemesters(department, semester);
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() { modal.classList.add('hidden'); form.reset(); mSem.disabled = true; }
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            university_id: document.getElementById('mUsn').value,
+            name: document.getElementById('mName').value,
+            department: document.getElementById('mCourse').value,
+            semester: document.getElementById('mSemester').value
+        };
+        const url = editId ? `/api/students/${editId}/` : '/api/students/';
+        const res = await fetch(url, {
+            method: editId ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            showToast(editId ? 'Student updated' : 'Student added');
+            closeModal();
+            refreshList();
+        }
+    };
+
+    async function handleDelete(usn) {
+        const confirmed = await showConfirm('Remove Student?', 'Are you sure? This action cannot be undone.', 'Remove');
+        if (confirmed) {
+            const res = await fetch(`/api/students/${usn}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            if (res.ok) {
+                showToast('Student removed');
+                refreshList();
+            }
+        }
+    }
+
+    async function handleBulkUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/students/upload/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            });
+            if (res.ok) {
+                showToast('Student list uploaded successfully');
+                refreshList();
+            } else {
+                showToast('Failed to upload list', 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('System error during upload', 'error');
+        }
+    }
+</script>
+{% endblock %}
