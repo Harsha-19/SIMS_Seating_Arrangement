@@ -7,15 +7,19 @@
     <!-- Fluid Dashboard Header -->
     <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div class="space-y-3">
-            <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-100/50 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-200/50 shadow-sm">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1 bg-blue-100/50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-200/50 dark:border-blue-800/50 shadow-sm">
                 <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-600 dark:bg-blue-400"></span>
                 </span>
                 System Ready
             </div>
-            <h1 class="text-5xl font-black text-slate-900 tracking-tightest leading-none">System Overview</h1>
-            <p class="text-base text-slate-500 font-medium max-w-2xl tracking-normal">See all your students, exams, and rooms in one place.</p>
+            <h1 class="text-5xl font-black text-slate-900 dark:text-white tracking-tightest leading-none">System
+                Overview</h1>
+            <p class="text-base text-slate-500 dark:text-slate-400 font-medium max-w-2xl tracking-normal">See all your
+                students, exams, and rooms in one place.</p>
         </div>
         <div class="flex items-center gap-4">
         </div>
@@ -23,65 +27,84 @@
 
     <!-- Main Bento Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        
+
         <!-- Large Primary Stat Card -->
-        <div class="lg:col-span-2 bg-white rounded-[3rem] p-10 border border-slate-200 shadow-xl shadow-slate-200/30 flex flex-col justify-between relative overflow-hidden group">
+        <div
+            class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/30 dark:shadow-none flex flex-col justify-between relative overflow-hidden group transition-all duration-300">
             <!-- Background abstraction -->
-            <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-50/50 rounded-full blur-3xl group-hover:bg-blue-100/50 transition-colors duration-700"></div>
-            
+            <div
+                class="absolute -right-20 -bottom-20 w-80 h-80 bg-blue-50/50 dark:bg-blue-900/10 rounded-full blur-3xl group-hover:bg-blue-100/50 dark:group-hover:bg-blue-900/20 transition-colors duration-700">
+            </div>
+
             <div class="relative z-10">
                 <div class="flex items-center justify-between mb-12">
-                    <div class="p-4 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/30 transform group-hover:rotate-12 transition-transform duration-500">
+                    <div
+                        class="p-4 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/30 transform group-hover:rotate-12 transition-transform duration-500">
                         <i data-lucide="users" class="w-8 h-8"></i>
                     </div>
                     <div class="text-right">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Change</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Change
+                        </p>
                         <p class="text-sm font-black text-emerald-600">+14.2%</p>
                     </div>
                 </div>
                 <div class="space-y-1">
-                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Total Students</p>
-                    <p class="text-7xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">{{ stats.students|default:"0" }}</p>
+                    <p class="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em]">
+                        Total Students</p>
+                    <p
+                        class="text-7xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums leading-none">{{ stats.students|default:"0" }}</p>
                 </div>
             </div>
 
-            <div class="mt-12 relative z-10 pt-10 border-t border-slate-100 flex items-center justify-between">
+            <div
+                class="mt-12 relative z-10 pt-10 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div class="flex -space-x-4 hidden">
                     <!-- Removed avatar stack as requested -->
                 </div>
-                <a href="/students/" class="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline underline-offset-8">View Students</a>
+                <a href="/students/"
+                    class="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest hover:underline underline-offset-8">View
+                    Students</a>
             </div>
         </div>
 
         <!-- Metric Tile: Rooms -->
-        <div class="bg-white rounded-[3rem] p-8 border border-slate-200 shadow-xl shadow-slate-200/30 flex flex-col relative group hover:border-blue-500/20 transition-all overflow-hidden">
-            <div class="mb-8 p-3 w-fit bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
+        <div
+            class="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/30 dark:shadow-none flex flex-col relative group hover:border-blue-500/20 transition-all overflow-hidden duration-300">
+            <div
+                class="mb-8 p-3 w-fit bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all duration-500">
                 <i data-lucide="building-2" class="w-6 h-6"></i>
             </div>
             <div class="mt-auto">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Rooms</p>
-                <p class="text-5xl font-black text-slate-900 tracking-tighter tabular-nums">{{ stats.rooms|default:"0" }}</p>
-                <div class="mt-6 flex items-center gap-2">
-                    <div class="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-600 w-2/3"></div>
-                    </div>
-                </div>
+                <p class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                    Rooms</p>
+                <p class="text-5xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">{{ stats.rooms|default:"0" }}</p>
+            </div>
+            <div class="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <a href="/rooms/"
+                    class="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest hover:underline underline-offset-8">Manage
+                    Rooms</a>
             </div>
         </div>
 
         <!-- Metric Tile: Seating -->
-        <div class="bg-slate-900 rounded-[3rem] p-8 text-white flex flex-col relative overflow-hidden group shadow-2xl shadow-slate-900/20">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-[3rem] p-8 text-slate-900 dark:text-white flex flex-col relative overflow-hidden group shadow-xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
             <div class="absolute inset-x-0 inset-y-0 opacity-5 pointer-events-none">
                 <div class="w-full h-full bg-blue-500 rotate-12 scale-150 transform-gpu"></div>
             </div>
             <div class="relative z-10">
-                <div class="mb-8 p-3 w-fit bg-white/10 text-white/50 rounded-2xl group-hover:bg-white group-hover:text-slate-900 transition-all duration-500">
+                <div
+                    class="mb-8 p-3 w-fit bg-slate-50 dark:bg-white/10 text-slate-400 dark:text-white/50 rounded-2xl group-hover:bg-blue-600 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-slate-900 transition-all duration-500">
                     <i data-lucide="armchair" class="w-6 h-6"></i>
                 </div>
                 <div class="mt-auto">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Seating Plans</p>
-                    <p class="text-5xl font-black tracking-tighter tabular-nums leading-none">{{ stats.seating|default:"0" }}</p>
-                    <p class="text-[10px] text-blue-400 font-black mt-4 uppercase tracking-[0.2em] italic">Ready</p>
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                        Seating Plans</p>
+                    <p
+                        class="text-5xl font-black tracking-tighter tabular-nums leading-none text-slate-900 dark:text-white">{{ stats.seating|default:"0" }}</p>
+                    <p
+                        class="text-[10px] text-blue-600 dark:text-blue-400 font-black mt-4 uppercase tracking-[0.2em] italic">
+                        Ready</p>
                 </div>
             </div>
         </div>
@@ -89,62 +112,97 @@
         <!-- Wide Activity / Quick Actions Section -->
         <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Quick Actions -->
-            <div class="bg-white border border-slate-200 rounded-[3rem] p-8 shadow-xl shadow-slate-200/30 space-y-6">
-                <h3 class="text-sm font-black uppercase text-slate-400 tracking-[0.3em] mb-8">Actions</h3>
+            <div
+                class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] p-8 shadow-xl shadow-slate-200/30 dark:shadow-none space-y-6 transition-all duration-300">
+                <h3 class="text-sm font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.3em] mb-8">
+                    Actions</h3>
                 <div class="grid grid-cols-2 gap-4">
-                    <a href="/seating/" class="p-6 bg-slate-50 rounded-[2rem] hover:bg-emerald-600 hover:text-white transition-all group active:scale-95 text-center">
-                        <i data-lucide="zap" class="w-6 h-6 mx-auto mb-3 text-emerald-500 group-hover:text-white transition-colors fill-emerald-500 group-hover:fill-white"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Create Plan</p>
+                    <a href="/seating/"
+                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:bg-emerald-600 hover:text-white transition-all group active:scale-95 text-center">
+                        <i data-lucide="zap"
+                            class="w-6 h-6 mx-auto mb-3 text-emerald-500 dark:text-emerald-400 group-hover:text-white transition-colors fill-emerald-500 dark:fill-emerald-400 group-hover:fill-white"></i>
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest leading-relaxed text-slate-900 dark:text-white group-hover:text-white">
+                            Create Plan</p>
                     </a>
-                    <a href="/students/" class="p-6 bg-slate-50 rounded-[2rem] hover:bg-blue-600 hover:text-white transition-all group active:scale-95 text-center">
-                        <i data-lucide="user-plus" class="w-6 h-6 mx-auto mb-3 text-blue-500 group-hover:text-white transition-colors"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Add Students</p>
+                    <a href="/students/"
+                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:bg-blue-600 hover:text-white transition-all group active:scale-95 text-center">
+                        <i data-lucide="user-plus"
+                            class="w-6 h-6 mx-auto mb-3 text-blue-500 dark:text-blue-400 group-hover:text-white transition-colors"></i>
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest leading-relaxed text-slate-900 dark:text-white group-hover:text-white">
+                            Add Students</p>
                     </a>
-                    <a href="/exams/" class="p-6 bg-slate-50 rounded-[2rem] hover:bg-orange-600 hover:text-white transition-all group active:scale-95 text-center">
-                        <i data-lucide="calendar" class="w-6 h-6 mx-auto mb-3 text-orange-500 group-hover:text-white transition-colors"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Exams</p>
+                    <a href="/exams/"
+                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:Orange-600 hover:text-white transition-all group active:scale-95 text-center">
+                        <i data-lucide="calendar"
+                            class="w-6 h-6 mx-auto mb-3 text-orange-500 dark:text-orange-400 group-hover:text-white transition-colors"></i>
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest leading-relaxed text-slate-900 dark:text-white group-hover:text-white">
+                            Exams</p>
                     </a>
-                    <a href="/rooms/" class="p-6 bg-slate-50 rounded-[2rem] hover:bg-purple-600 hover:text-white transition-all group active:scale-95 text-center">
-                        <i data-lucide="layout" class="w-6 h-6 mx-auto mb-3 text-purple-500 group-hover:text-white transition-colors"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Rooms</p>
+                    <a href="/rooms/"
+                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:bg-purple-600 hover:text-white transition-all group active:scale-95 text-center">
+                        <i data-lucide="layout"
+                            class="w-6 h-6 mx-auto mb-3 text-purple-500 dark:text-purple-400 group-hover:text-white transition-colors"></i>
+                        <p
+                            class="text-[10px] font-black uppercase tracking-widest leading-relaxed text-slate-900 dark:text-white group-hover:text-white">
+                            Rooms</p>
                     </a>
                 </div>
             </div>
 
             <!-- Activity Feed -->
-            <div class="bg-white border border-slate-200 rounded-[3rem] p-8 shadow-xl shadow-slate-200/30 overflow-hidden relative">
-                <h3 class="text-sm font-black uppercase text-slate-400 tracking-[0.3em] mb-10">Recent Activity</h3>
-                <div class="space-y-8 relative before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-1 before:bg-slate-50">
+            <div
+                class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] p-8 shadow-xl shadow-slate-200/30 dark:shadow-none overflow-hidden relative transition-all duration-300">
+                <h3 class="text-sm font-black uppercase text-slate-400 dark:text-slate-500 tracking-[0.3em] mb-10">
+                    Recent Activity</h3>
+                <div
+                    class="space-y-8 relative before:absolute before:left-[20px] before:top-2 before:bottom-2 before:w-1 before:bg-slate-50 dark:before:bg-slate-800">
                     <div class="flex gap-6 items-start relative z-10 group">
-                        <div class="w-10 h-10 bg-white border-2 border-blue-500 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-lg shadow-blue-500/10">
+                        <div
+                            class="w-10 h-10 bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-lg shadow-blue-500/10">
                             <i data-lucide="user-plus" class="w-4 h-4"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase italic tracking-tight">Students Added</p>
-                            <p class="text-[10px] text-slate-500 mt-1 leading-relaxed">Added new students to the list.</p>
-                            <p class="text-[9px] font-bold text-slate-400 mt-2 uppercase">2 hrs ago</p>
+                            <p
+                                class="text-xs font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase italic tracking-tightest">
+                                Students Added</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Added new
+                                students to the list.</p>
+                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase">2 hrs ago
+                            </p>
                         </div>
                     </div>
                     <div class="flex gap-6 items-start relative z-10 group">
-                        <div class="w-10 h-10 bg-white border-2 border-emerald-500 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-lg shadow-emerald-500/10">
+                        <div
+                            class="w-10 h-10 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-lg shadow-emerald-500/10">
                             <i data-lucide="zap" class="w-4 h-4"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-black text-slate-900 group-hover:text-emerald-600 transition-colors uppercase italic tracking-tight">Plan Created</p>
-                            <p class="text-[10px] text-slate-500 mt-1 leading-relaxed">Created a new seating plan for the exam.</p>
-                            <p class="text-[9px] font-bold text-slate-400 mt-2 uppercase">5 hrs ago</p>
+                            <p
+                                class="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase italic tracking-tightest">
+                                Plan Created</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Created a new
+                                seating plan for the exam.</p>
+                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase">5 hrs ago
+                            </p>
                         </div>
                     </div>
                 </div>
                 <!-- View all overlay hint -->
-                <div class="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-white flex items-end justify-center pb-8 p-4">
-                    <button class="w-full py-3 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest rounded-2xl hover:bg-slate-900 hover:text-white transition-all active:scale-95">View All Activity</button>
+                <div
+                    class="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-white dark:from-slate-900 flex items-end justify-center pb-8 p-4 transition-all duration-300">
+                    <button
+                        class="w-full py-3 bg-slate-50 dark:bg-slate-800 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest rounded-2xl hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-slate-900 transition-all active:scale-95">View
+                        All Activity</button>
                 </div>
             </div>
         </div>
 
         <!-- Exam Session Tile -->
-        <div class="bg-orange-600 rounded-[3rem] p-8 text-white flex flex-col relative overflow-hidden group shadow-2xl shadow-orange-600/20">
+        <div
+            class="bg-orange-600 rounded-[3rem] p-8 text-white flex flex-col relative overflow-hidden group shadow-2xl shadow-orange-600/20">
             <div class="absolute right-0 top-0 opacity-10">
                 <i data-lucide="calendar" class="w-40 h-40 transform translate-x-12 -translate-y-12"></i>
             </div>
@@ -161,7 +219,9 @@
                     <p class="text-xs font-black uppercase tracking-widest leading-relaxed">No exams scheduled for the next 24 hours. All systems go.</p>
                     {% endif %}
                 </div>
-                <a href="/exams/" class="mt-8 py-3 bg-white/20 hover:bg-white text-white hover:text-orange-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center">View Schedule</a>
+                <a href="/exams/"
+                    class="mt-8 py-3 bg-white/20 hover:bg-white text-white hover:text-orange-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all text-center">View
+                    Schedule</a>
             </div>
         </div>
 

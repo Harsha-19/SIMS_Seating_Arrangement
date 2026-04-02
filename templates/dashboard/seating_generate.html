@@ -6,44 +6,54 @@
 <div class="max-w-5xl mx-auto space-y-12 py-6">
     <!-- Header -->
     <div class="text-center space-y-4">
-        <div class="inline-flex p-4 px-6 bg-emerald-50 text-emerald-600 rounded-3xl border border-emerald-100 items-center justify-center gap-3 font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/10">
-            <i data-lucide="zap" class="w-5 h-5 fill-emerald-600"></i>
-            Seating Core v2.4 Active
-        </div>
+
         <h1 class="text-5xl font-black text-slate-900 tracking-tightest leading-tight">Create Seating Plan</h1>
-        <p class="text-lg text-slate-500 font-medium max-w-2xl mx-auto italic">Automatically arrange students in rooms while keeping departments separate.</p>
+        <p class="text-lg text-slate-500 font-medium max-w-2xl mx-auto italic">Automatically arrange students in rooms
+            while keeping departments separate.</p>
     </div>
 
     <!-- Planner Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-12">
         <!-- Configuration Side (Left 3/5) -->
         <div class="lg:col-span-3 space-y-8">
-            <div class="bg-white rounded-[3rem] p-10 border border-slate-200 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
+            <div
+                class="bg-white rounded-[3rem] p-10 border border-slate-200 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
                 <!-- Abstract background hint -->
                 <div class="absolute -right-20 -top-20 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50"></div>
-                
+
                 <form id="generateForm" class="space-y-10 relative z-10">
                     <!-- Step 1: Select Exam -->
                     <div class="space-y-4">
                         <div class="flex items-center gap-3 mb-6">
-                            <span class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">01</span>
+                            <span
+                                class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">01</span>
                             <h2 class="text-xl font-black text-slate-900 uppercase tracking-tight">Select the Exam</h2>
                         </div>
                         <div class="grid grid-cols-1 gap-3">
                             {% for exam in exams %}
-                            <label class="relative flex items-center p-5 bg-slate-50 border-2 border-transparent rounded-2xl cursor-pointer hover:bg-slate-100 group transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
+                            <label
+                                class="relative flex items-center p-5 bg-slate-50 border-2 border-transparent rounded-2xl cursor-pointer hover:bg-slate-100 group transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
                                 <input type="radio" name="examId" value="{{ exam.id }}" class="hidden peer" required>
                                 <div class="flex-1">
-                                    <p class="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase leading-none">{{ exam.subject }}</p>
-                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ exam.course }} • {{ exam.start_time|time:"h:i A" }} - {{ exam.end_time|time:"h:i A" }}</p>
+                                    <p
+                                        class="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase leading-none">
+                                        {{ exam.subject }}</p>
+                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{
+                                        exam.course }} • {{ exam.start_time|time:"h:i A" }} - {{ exam.end_time|time:"h:i
+                                        A" }}</p>
                                 </div>
-                                <div class="w-6 h-6 rounded-full border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 group-hover:border-emerald-400 flex items-center justify-center transition-all">
-                                    <i data-lucide="check" class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100"></i>
+                                <div
+                                    class="w-6 h-6 rounded-full border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 group-hover:border-emerald-400 flex items-center justify-center transition-all">
+                                    <i data-lucide="check"
+                                        class="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100"></i>
                                 </div>
-                                <div class="absolute inset-x-0 inset-y-0 border-2 border-transparent rounded-2xl peer-checked:border-emerald-500 transition-all pointer-events-none"></div>
+                                <div
+                                    class="absolute inset-x-0 inset-y-0 border-2 border-transparent rounded-2xl peer-checked:border-emerald-500 transition-all pointer-events-none">
+                                </div>
                             </label>
                             {% empty %}
-                            <div class="p-6 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                            <div
+                                class="p-6 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 text-center">
                                 <p class="text-xs font-black text-slate-400 uppercase">No active exams to plan</p>
                             </div>
                             {% endfor %}
@@ -53,33 +63,41 @@
                     <!-- Step 2: Select Venues -->
                     <div class="space-y-4 pt-10 border-t border-slate-100">
                         <div class="flex items-center gap-3 mb-6">
-                            <span class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">02</span>
+                            <span
+                                class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black italic">02</span>
                             <h2 class="text-xl font-black text-slate-900 uppercase tracking-tight">Select the Rooms</h2>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             {% for room in rooms %}
                             <label class="relative group cursor-pointer">
                                 <input type="checkbox" name="roomIds" value="{{ room.id }}" class="hidden peer">
-                                <div class="p-5 bg-white border-2 border-slate-100 rounded-3xl group-hover:border-blue-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition-all">
+                                <div
+                                    class="p-5 bg-white border-2 border-slate-100 rounded-3xl group-hover:border-blue-200 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition-all">
                                     <div class="flex items-center justify-between mb-2">
-                                        <div class="px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white transition-colors uppercase">
+                                        <div
+                                            class="px-2.5 py-1 bg-slate-100 rounded-lg text-[9px] font-black text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white transition-colors uppercase">
                                             {{ room.room_number }}
                                         </div>
-                                        <i data-lucide="building-2" class="w-4 h-4 text-slate-300 peer-checked:text-blue-500 transition-colors"></i>
+                                        <i data-lucide="building-2"
+                                            class="w-4 h-4 text-slate-300 peer-checked:text-blue-500 transition-colors"></i>
                                     </div>
-                                    <p class="text-lg font-black text-slate-900 tabular-nums leading-none">{{ room.total_capacity }}</p>
-                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Capacity</p>
+                                    <p class="text-lg font-black text-slate-900 tabular-nums leading-none">{{
+                                        room.total_capacity }}</p>
+                                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                                        Capacity</p>
                                 </div>
                             </label>
                             {% empty %}
-                            <div class="col-span-2 p-6 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+                            <div
+                                class="col-span-2 p-6 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 text-center">
                                 <p class="text-xs font-black text-slate-400 uppercase">No venues configured</p>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full py-6 bg-slate-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-slate-900/40 flex items-center justify-center gap-4 group active:scale-[0.98]">
+                    <button type="submit"
+                        class="w-full py-6 bg-slate-900 text-white rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-2xl shadow-slate-900/40 flex items-center justify-center gap-4 group active:scale-[0.98]">
                         <i data-lucide="play" class="w-5 h-5 fill-white group-hover:scale-110 transition-transform"></i>
                         Create Plan
                     </button>
@@ -89,7 +107,8 @@
 
         <!-- Simulation Area (Right 2/5) -->
         <div class="lg:col-span-2 space-y-10">
-            <div class="bg-slate-900 rounded-[3rem] p-8 text-white h-fit shadow-2xl shadow-slate-900/40 border border-white/5 relative overflow-hidden">
+            <div
+                class="bg-slate-900 rounded-[3rem] p-8 text-white h-fit shadow-2xl shadow-slate-900/40 border border-white/5 relative overflow-hidden">
                 <!-- Abstract patterns -->
                 <div class="absolute inset-0 opacity-5 pointer-events-none">
                     <div class="grid grid-cols-10 gap-1 h-full w-full rotate-45 scale-150">
@@ -109,8 +128,11 @@
                         <div class="flex gap-4">
                             <div class="w-1 h-auto bg-blue-500 rounded-full"></div>
                             <div>
-                                <p class="text-xs font-black uppercase tracking-widest text-slate-200 tracking-widest text-emerald-400">Students Found</p>
-                                <p class="text-[10px] text-slate-400 mt-1">Found {{ student_count }} students for the plan.</p>
+                                <p
+                                    class="text-xs font-black uppercase tracking-widest text-slate-200 tracking-widest text-emerald-400">
+                                    Students Found</p>
+                                <p class="text-[10px] text-slate-400 mt-1">Found {{ student_count }} students for the
+                                    plan.</p>
                             </div>
                         </div>
                         <div class="flex gap-4">
@@ -127,18 +149,23 @@
                             <div class="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
                                 <i data-lucide="info" class="w-4 h-4"></i>
                             </div>
-                            <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Keeping departments separate.</p>
+                            <p class="text-[10px] font-black uppercase tracking-widest leading-relaxed">Keeping
+                                departments separate.</p>
                         </div>
-                        <p class="text-[10px] text-slate-500 font-medium">Students from the same department will not sit next to each other.</p>
+                        <p class="text-[10px] text-slate-500 font-medium">Students from the same department will not sit
+                            next to each other.</p>
                     </div>
-                    
-                    <div id="successCard" class="hidden animate-in fade-in slide-in-from-bottom-5 duration-500 p-8 bg-emerald-600 rounded-[2rem] text-center">
+
+                    <div id="successCard"
+                        class="hidden animate-in fade-in slide-in-from-bottom-5 duration-500 p-8 bg-emerald-600 rounded-[2rem] text-center">
                         <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i data-lucide="check-circle" class="w-8 h-8"></i>
                         </div>
                         <h4 class="text-xl font-black uppercase tracking-tight">Done!</h4>
                         <p class="text-emerald-100 text-[11px] font-medium mt-2">Your seating plan is ready.</p>
-                        <a href="/" class="mt-6 inline-block w-full py-3 bg-white text-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-50 transition-colors">View Plan</a>
+                        <a href="/"
+                            class="mt-6 inline-block w-full py-3 bg-white text-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-50 transition-colors">View
+                            Plan</a>
                     </div>
                 </div>
             </div>
@@ -147,16 +174,20 @@
 </div>
 
 <!-- Modal / Feedback Backdrop -->
-<div id="loadingOverlay" class="hidden fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center">
+<div id="loadingOverlay"
+    class="hidden fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center">
     <div class="text-center space-y-8 max-w-sm px-6">
         <div class="relative w-24 h-24 mx-auto mb-10">
             <div class="absolute inset-0 border-8 border-white/10 rounded-full"></div>
-            <div class="absolute inset-0 border-8 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+            <div class="absolute inset-0 border-8 border-emerald-500 rounded-full border-t-transparent animate-spin">
+            </div>
             <i data-lucide="cpu" class="absolute inset-0 m-auto w-8 h-8 text-white animate-pulse"></i>
         </div>
         <div class="space-y-4">
             <h3 class="text-2xl font-black text-white uppercase tracking-widest">Arranging Seats</h3>
-            <p id="loadingMsg" class="text-slate-400 text-xs font-medium uppercase tracking-[0.2em] animate-pulse italic">Assigning students to rooms...</p>
+            <p id="loadingMsg"
+                class="text-slate-400 text-xs font-medium uppercase tracking-[0.2em] animate-pulse italic">Assigning
+                students to rooms...</p>
         </div>
     </div>
 </div>
@@ -171,7 +202,7 @@
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-        
+
         const formData = new FormData(form);
         const data = {
             examId: formData.get('examId'),
@@ -184,7 +215,7 @@
         }
 
         overlay.classList.remove('hidden');
-        
+
         // Simulating progressive steps for effect
         const steps = [
             "Checking departments...",
@@ -195,7 +226,7 @@
             "Saving plan..."
         ];
 
-        for(let step of steps) {
+        for (let step of steps) {
             loadMsg.innerText = step;
             await new Promise(r => setTimeout(r, 600));
         }
@@ -216,7 +247,7 @@
             if (response.ok) {
                 successCard.classList.remove('hidden');
                 form.classList.add('opacity-50', 'pointer-events-none');
-                
+
                 const statusList = document.getElementById('statusList');
                 statusList.innerHTML = `
                     <div class="flex gap-4">
@@ -239,7 +270,7 @@
                     </div>
                 ` + statusList.innerHTML;
             }
-        } catch(error) {
+        } catch (error) {
             overlay.classList.add('hidden');
             console.error(error);
         }
