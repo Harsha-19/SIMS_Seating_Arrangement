@@ -50,7 +50,7 @@ Once the server is running, open your browser and go to:
 
 ---
 
-## 🔐 Administrative Access
+##  Administrative Access
 Login directly to the dashboard to begin managing institutional data:
 - **Support Contact**: Harsha (`harshamt2005@gmail.com`)
 - **Main Office**: Soundarya Institute of Management and Science
