@@ -1,10 +1,10 @@
-# 🏫 SOUNDARYA INSTITUTE - Smart Institutional Management System (SIMS)
+# SOUNDARYA INSTITUTE - Smart Institutional Management System (SIMS)
 
 A professional, high-fidelity SaaS-grade dashboard constructed for the management of educational session data, including students, examination halls, schedules, and automated seating arrangements.
 
 ---
 
-## 🌟 Primary Features
+## Primary Features
 
 - **Dynamic Student Management**: Reactive filtering by Department and Semester with live AJAX searching.
 - **Automated Seating Engine**: High-fidelity, row-by-row seating allocation with fixed `[3, 2, 3]` section filling patterns for exam halls.
@@ -14,7 +14,7 @@ A professional, high-fidelity SaaS-grade dashboard constructed for the managemen
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **Backend**: Python 3.x, Django 5.x, Django REST Framework (DRF).
 - **Frontend**: Vanilla JavaScript (AJAX/Fetch), Tailwind CSS (CDN), Lucide Icons.
@@ -23,7 +23,7 @@ A professional, high-fidelity SaaS-grade dashboard constructed for the managemen
 
 ---
 
-## 🚀 How to Run the Project
+## How to Run the Project
 
 ### 1. Repository Location
 Open your terminal and navigate to the project root directory:
