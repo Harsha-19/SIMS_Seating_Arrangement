@@ -134,7 +134,7 @@
                             Add Students</p>
                     </a>
                     <a href="/exams/"
-                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:Orange-600 hover:text-white transition-all group active:scale-95 text-center">
+                        class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] hover:bg-orange-600 hover:text-white transition-all group active:scale-95 text-center">
                         <i data-lucide="calendar"
                             class="w-6 h-6 mx-auto mb-3 text-orange-500 dark:text-orange-400 group-hover:text-white transition-colors"></i>
                         <p
@@ -159,36 +159,26 @@
                     Recent Activity</h3>
                 <div
                     class="space-y-8 relative before:absolute before:left-[20px] before:top-2 before:bottom-2 before:w-1 before:bg-slate-50 dark:before:bg-slate-800">
+                    {% for item in activities %}
                     <div class="flex gap-6 items-start relative z-10 group">
                         <div
-                            class="w-10 h-10 bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-lg shadow-blue-500/10">
-                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            class="w-10 h-10 bg-white dark:bg-slate-900 border-2 border-{{ item.color }}-500 rounded-xl flex items-center justify-center text-{{ item.color }}-500 group-hover:bg-{{ item.color }}-500 group-hover:text-white transition-all shadow-lg shadow-{{ item.color }}-500/10">
+                            <i data-lucide="{{ item.icon }}" class="w-4 h-4"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <p
-                                class="text-xs font-black text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase italic tracking-tightest">
-                                Students Added</p>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Added new
-                                students to the list.</p>
-                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase">2 hrs ago
+                                class="text-xs font-black text-slate-900 dark:text-white group-hover:text-{{ item.color }}-600 dark:group-hover:text-{{ item.color }}-400 transition-colors uppercase italic tracking-tightest">
+                                {{ item.title }}</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{{ item.description }}</p>
+                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase">{{ item.time|timesince }} ago
                             </p>
                         </div>
                     </div>
-                    <div class="flex gap-6 items-start relative z-10 group">
-                        <div
-                            class="w-10 h-10 bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-lg shadow-emerald-500/10">
-                            <i data-lucide="zap" class="w-4 h-4"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-xs font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase italic tracking-tightest">
-                                Plan Created</p>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Created a new
-                                seating plan for the exam.</p>
-                            <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-2 uppercase">5 hrs ago
-                            </p>
-                        </div>
+                    {% empty %}
+                    <div class="py-12 text-center">
+                        <p class="text-xs font-black text-slate-300 uppercase italic">Awaiting System Activity</p>
                     </div>
+                    {% endfor %}
                 </div>
                 <!-- View all overlay hint -->
                 <div

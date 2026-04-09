@@ -26,11 +26,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'total_exams': Exam.objects.count(),
             'seating': Seating.objects.values('exam').distinct().count(),
         }
-        # Recent exams for the table
-        context['recent_exams'] = Exam.objects.all().order_by('-date')[:5]
-        # Calculate total capacity
-        total_capacity = sum(r.total_capacity for r in Room.objects.all())
-        context['total_capacity'] = total_capacity
+        # Recent activities
+        activities = []
+        
+        # Latest 3 Students
+        latest_students = Student.objects.all().order_by('-created_at')[:3]
+        for s in latest_students:
+            activities.append({
+                'title': 'Students Added',
+                'description': f'Added {s.name} ({s.university_id})',
+                'time': s.created_at,
+                'icon': 'user-plus',
+                'color': 'blue'
+            })
+            
+        # Latest 3 Seating Plans (Distinct exams)
+        latest_seating = Seating.objects.all().values('exam', 'created_at').annotate(cnt=Count('id')).order_by('-created_at')[:3]
+        for se in latest_seating:
+            exam = Exam.objects.get(id=se['exam'])
+            activities.append({
+                'title': 'Plan Created',
+                'description': f'Seating arrangement for {exam.subject} ready.',
+                'time': se['created_at'],
+                'icon': 'zap',
+                'color': 'emerald'
+            })
+
+        # Sort by latest
+        activities.sort(key=lambda x: x['time'], reverse=True)
+        context['activities'] = activities[:5]
+        
         return context
 
 class CustomLoginView(DjangoLoginView):
@@ -184,7 +209,8 @@ class GenerateAttendanceView(LoginRequiredMixin, TemplateView):
             if sheet_key not in grouped_data[room_id]['sheets']:
                 grouped_data[room_id]['sheets'][sheet_key] = []
             
-            grouped_data[room_id]['sheets'][sheet_key].append(seat.student)
+            # Map the seat mapping for official register
+            grouped_data[room_id]['sheets'][sheet_key].append(seat)
         
         # Sort sheets for easier template rendering: List of (room_info, [ (course_sem, students) ])
         final_rooms = []
@@ -195,7 +221,7 @@ class GenerateAttendanceView(LoginRequiredMixin, TemplateView):
                 sheets_list.append({
                     'course': s_key[0],
                     'semester': s_key[1],
-                    'students': room_info['sheets'][s_key]
+                    'seats': room_info['sheets'][s_key]
                 })
             final_rooms.append({
                 'room_number': room_info['room_number'],

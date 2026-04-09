@@ -13,12 +13,16 @@
                 <span class="text-slate-600">Students</span>
             </nav>
             <h1 class="text-2xl font-bold text-slate-900">Student List</h1>
-            <p class="text-sm text-slate-500 mt-1">Showing {{ students|length }} students in the system.</p>
+            <p class="text-sm text-slate-500 mt-1">Showing <span id="totalCountNumber">{{ students|length }}</span> students in the system.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button onclick="document.getElementById('bulkUploadInput').click()" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2">
                 <i data-lucide="file-up" class="w-4 h-4 text-blue-600"></i>
                 Upload List
+            </button>
+            <button id="clearDataBtn" onclick="handleClearDataset()" class="bg-white border border-red-100 text-red-600 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-red-50 transition-all shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Clear Data
             </button>
             <input type="file" id="bulkUploadInput" accept=".xlsx" class="hidden" onchange="handleBulkUpload(event)">
             <button onclick="openModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
@@ -32,29 +36,69 @@
     <div class="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
         <div class="flex-1 relative group">
             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
-            <input id="student-search" type="text" oninput="refreshList()" placeholder="Search for a student..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
+            <input id="student-search" type="text" placeholder="Search for a student..." class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
         </div>
+        
+        <!-- Semester Type Toggle -->
+        <div class="flex items-center bg-slate-50 border border-slate-200 p-1 rounded-xl">
+            <button onclick="setSemTypeFilter('')" id="sem-type-all" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all bg-white text-blue-600 shadow-sm">All</button>
+            <button onclick="setSemTypeFilter('ODD')" id="sem-type-odd" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Odd</button>
+            <button onclick="setSemTypeFilter('EVEN')" id="sem-type-even" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Even</button>
+        </div>
+
         <div class="flex items-center gap-4">
-            <select id="filter-dept" onchange="syncFilterSemesters(this.value); refreshList()" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+            <select id="filter-dept" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
                 <option value="">All Departments</option>
                 {% for dept in departments %}
                 <option value="{{ dept.id }}">{{ dept.name }}</option>
                 {% endfor %}
             </select>
-            <select id="filter-sem" onchange="refreshList()" disabled class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
+            <select id="filter-sem" disabled class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
                 <option value="">Select Dept First</option>
             </select>
+
+            <div class="h-8 w-px bg-slate-100 mx-2 hidden md:block"></div>
+
+            <div class="flex items-center gap-2">
+                <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-400"></i>
+                <select id="sort-field" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                    <option value="name">Name</option>
+                    <option value="university_id">University ID</option>
+                </select>
+                <select id="sort-order" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
         </div>
     </div>
 
     <!-- Student Table -->
-    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+    <div class="relative bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <!-- Floating Bulk Action Bar -->
+        <div id="bulkActions" class="hidden absolute top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur text-white px-8 py-4 flex items-center justify-between shadow-2xl animate-in slide-in-from-top duration-300">
+            <div class="flex items-center gap-4">
+                <span class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black shadow-lg shadow-blue-500/40" id="selectedCountDisplay">0</span>
+                <p class="text-[10px] font-black uppercase tracking-widest italic opacity-80">Students Selected for universal action</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="clearSelection()" class="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancel</button>
+                <button onclick="handleBulkDelete()" class="px-6 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-500/40 flex items-center gap-2 active:scale-95">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    Universal Delete
+                </button>
+            </div>
+        </div>
+
         {% if students %}
         <div class="overflow-x-auto">
-            <table class="w-full text-left">
+            <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50/80 text-xs font-bold uppercase text-slate-500 border-b border-slate-100">
                     <tr>
-                        <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">University ID</th>
+                        <th class="px-8 py-5 w-4">
+                            <input type="checkbox" id="selectAllItems" onchange="toggleAll(this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer">
+                        </th>
+                        <th class="px-2 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">University ID</th>
                         <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</th>
                         <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Department & Semester</th>
                         <th class="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
@@ -62,8 +106,11 @@
                 </thead>
                 <tbody id="items-table-body" class="divide-y divide-slate-100">
                     {% for student in students %}
-                    <tr class="hover:bg-blue-50/30 transition-all group">
+                    <tr onclick="toggleRow(event, this)" class="hover:bg-blue-50/30 transition-all cursor-pointer group table-row-item" data-id="{{ student.university_id }}">
                         <td class="px-8 py-5">
+                            <input type="checkbox" onclick="event.stopPropagation()" onchange="updateSelectedCount()" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="{{ student.university_id }}">
+                        </td>
+                        <td class="px-2 py-5">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
                                     {{ student.university_id|slice:":2" }}
@@ -79,7 +126,7 @@
                         </td>
                         <td class="px-8 py-5 text-right">
                             <div class="flex items-center justify-end gap-1">
-                                <button onclick="openModal('{{ student.university_id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.department.id|escapejs }}', '{{ student.semester.id|escapejs }}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                <button onclick="openModal('{{ student.id|escapejs }}', '{{ student.university_id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.department.id|escapejs }}', '{{ student.semester.id|escapejs }}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
                                 <button onclick="handleDelete('{{ student.university_id|escapejs }}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
@@ -94,16 +141,18 @@
         </div>
         
         <!-- Pagination Section -->
-        <div class="px-8 py-5 bg-slate-50/40 border-t border-slate-100 flex items-center justify-between">
-            <p class="text-xs text-slate-500 font-medium">Showing <span class="text-slate-900">1 to {{ students|length }}</span> of {{ students|length }} results</p>
+        <div class="px-8 py-5 bg-slate-50/40 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p id="paginationInfo" class="text-xs font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                Showing <span class="text-slate-900">0 to 0</span> of 0 results
+            </p>
             <div class="flex items-center gap-2">
-                <button disabled class="p-2 text-slate-300 cursor-not-allowed">
+                <button id="prevPageBtn" onclick="goToPage(currentPage - 1)" class="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </button>
-                <div class="flex items-center gap-1">
-                    <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white text-xs font-bold">1</button>
+                <div id="pageNumbers" class="flex items-center gap-1.5 overflow-hidden transition-all duration-500">
+                    <!-- Page numbers will be rendered here -->
                 </div>
-                <button class="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+                <button id="nextPageBtn" onclick="goToPage(currentPage + 1)" class="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -178,9 +227,256 @@
     const studentSearch = document.getElementById('student-search');
     const filterDept = document.getElementById('filter-dept');
     const filterSem = document.getElementById('filter-sem');
+    const sortFieldSelect = document.getElementById('sort-field');
+    const sortOrderSelect = document.getElementById('sort-order');
+    
+    // Wire up event handlers for instant client-side reactivity
+    studentSearch.oninput = () => { currentPage = 1; renderCurrentPage(); };
+    filterDept.onchange = (e) => { 
+        syncFilterSemesters(e.target.value); 
+        currentPage = 1; 
+        renderCurrentPage(); 
+    };
+    filterSem.onchange = () => { currentPage = 1; renderCurrentPage(); };
+    sortFieldSelect.onchange = (e) => { sortField = e.target.value; currentPage = 1; renderCurrentPage(); };
+    sortOrderSelect.onchange = (e) => { sortOrder = e.target.value; currentPage = 1; renderCurrentPage(); };
+
     const tableBody = document.getElementById('items-table-body');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageNumbers = document.getElementById('pageNumbers');
     
     let editId = '';
+    let allStudents = [];
+    let selectedIds = new Set();
+    let currentPage = 1;
+    let sortField = 'name';
+    let sortOrder = 'asc';
+    let semTypeFilter = '';
+    const ITEMS_PER_PAGE = 20;
+
+    function setSemTypeFilter(type) {
+        semTypeFilter = type;
+        
+        // Update UI
+        const btns = {
+            '': 'sem-type-all',
+            'ODD': 'sem-type-odd',
+            'EVEN': 'sem-type-even'
+        };
+        
+        Object.keys(btns).forEach(key => {
+            const btn = document.getElementById(btns[key]);
+            if (key === type) {
+                btn.className = "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all bg-white text-blue-600 shadow-sm";
+            } else {
+                btn.className = "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600";
+            }
+        });
+        
+        currentPage = 1;
+        renderCurrentPage();
+    }
+
+    function normalizeStudents(raw) {
+        if (Array.isArray(raw)) return raw;
+        if (raw && Array.isArray(raw.results)) return raw.results;
+        if (raw && Array.isArray(raw.students)) return raw.students;
+        return [];
+    }
+
+    function renderRows(studentsPage) {
+        tableBody.innerHTML = '';
+        if (!Array.isArray(studentsPage) || studentsPage.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic">No students found</td></tr>`;
+            return;
+        }
+
+        studentsPage.forEach(s => {
+            const deptName = s.department_info ? s.department_info.name : 'Unknown';
+            const semName = s.semester_info ? s.semester_info.name : 'Unknown';
+            const isChecked = selectedIds.has(s.university_id);
+            
+            tableBody.innerHTML += `
+                <tr onclick="toggleRow(event, this)" class="hover:bg-blue-50/30 transition-all group table-row-item" data-id="${s.university_id}">
+                    <td class="px-8 py-5">
+                        <input type="checkbox" onchange="toggleSelection('${s.university_id}', this.checked)" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="${s.university_id}" onclick="event.stopPropagation()">
+                    </td>
+                    <td class="px-2 py-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
+                                ${String(s.university_id || '').slice(0, 2)}
+                            </div>
+                            <span class="text-sm font-black text-slate-900 tracking-tight">${s.university_id || ''}</span>
+                        </div>
+                    </td>
+                    <td class="px-8 py-5 font-semibold text-slate-900">${s.name || ''}</td>
+                    <td class="px-8 py-5">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
+                            ${deptName} • ${semName}
+                        </span>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <div class="flex items-center justify-end gap-1">
+                            <button onclick="openModal('${s.id}', '${s.university_id}', '${s.name}', '${s.department}', '${s.semester}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="handleDelete('${s.university_id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    function getPaginationRange(current, total) {
+        const delta = 1;
+        const range = [];
+        const rangeWithDots = [];
+
+        for (let i = 1; i <= total; i += 1) {
+            if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+                range.push(i);
+            }
+        }
+
+        let prev;
+        for (let i of range) {
+            if (prev) {
+                if (i - prev === 2) {
+                    rangeWithDots.push(prev + 1);
+                } else if (i - prev > 2) {
+                    rangeWithDots.push('...');
+                }
+            }
+            rangeWithDots.push(i);
+            prev = i;
+        }
+        return rangeWithDots;
+    }
+
+    function renderPageNumbers(totalPages) {
+        pageNumbers.innerHTML = '';
+        
+        // Mobile special case: show only current page
+        const isMobile = window.innerWidth < 768;
+        const pages = isMobile ? [currentPage] : getPaginationRange(currentPage, totalPages);
+
+        pages.forEach(page => {
+            if (page === '...') {
+                const dot = document.createElement('span');
+                dot.className = 'px-2 text-slate-400 font-black cursor-default select-none';
+                dot.innerText = '...';
+                pageNumbers.appendChild(dot);
+            } else {
+                const btn = document.createElement('button');
+                btn.onclick = () => goToPage(page);
+                const isActive = page === currentPage;
+                // Add condensed visibility for tablet scales
+                const isFar = Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages;
+                const hiddenClasses = isFar ? 'hidden lg:flex' : '';
+                
+                btn.className = `min-w-[36px] h-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all shadow-sm ${hiddenClasses} ${isActive ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
+                btn.innerText = page;
+                pageNumbers.appendChild(btn);
+            }
+        });
+    }
+
+    window.onresize = () => renderPageNumbers(Math.ceil((sortField ? document.querySelectorAll('#items-table-body tr').length : allStudents.length) / ITEMS_PER_PAGE));
+
+    function renderCurrentPage() {
+        const students = Array.isArray(allStudents) ? allStudents : [];
+        const searchVal = studentSearch.value.toLowerCase();
+        const deptId = filterDept.value;
+        const semId = filterSem.value;
+
+        // Dataset Integrity Pipeline: Source of Truth (allStudents) -> Filtered -> Paginated
+        const filteredStudents = students.filter(s => {
+            const name = (s.name || '').toLowerCase();
+            const usn = (s.university_id || '').toLowerCase();
+            
+            const matchesSearch = !searchVal || name.includes(searchVal) || usn.includes(searchVal);
+            const matchesDept = !deptId || s.department == deptId;
+            const matchesSem = !semId || s.semester == semId;
+            const matchesType = !semTypeFilter || s.sem_type == semTypeFilter;
+            
+            return matchesSearch && matchesDept && matchesSem && matchesType;
+        });
+
+        // Update Counts for the Header Subtitle
+        const oddCount = students.filter(s => s.sem_type === 'ODD').length;
+        const evenCount = students.filter(s => s.sem_type === 'EVEN').length;
+        
+        const countSubtitle = document.querySelector('p.text-sm.text-slate-500.mt-1');
+        if (countSubtitle) {
+            countSubtitle.innerHTML = `Showing <span id="totalCountNumber" class="font-bold text-slate-900">${filteredStudents.length}</span> students. <span class="mx-2 text-slate-300">|</span> <span class="text-xs">ODD: ${oddCount}</span> <span class="mx-1 text-slate-300">•</span> <span class="text-xs">EVEN: ${evenCount}</span>`;
+        }
+
+        // Sorting Pipeline
+        const sortedStudents = [...filteredStudents].sort((a, b) => {
+            if (!sortField) return 0;
+            let valA = a[sortField] || '';
+            let valB = b[sortField] || '';
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        const totalPages = Math.max(1, Math.ceil(sortedStudents.length / ITEMS_PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const indexOfLast = currentPage * ITEMS_PER_PAGE;
+        const indexOfFirst = indexOfLast - ITEMS_PER_PAGE;
+        const currentStudents = sortedStudents.slice(indexOfFirst, indexOfLast);
+
+        renderRows(currentStudents);
+        renderPageNumbers(totalPages);
+
+        const showingStart = sortedStudents.length === 0 ? 0 : indexOfFirst + 1;
+        const showingEnd = Math.min(indexOfLast, sortedStudents.length);
+        paginationInfo.innerHTML = `Showing <span class="text-slate-900">${showingStart} to ${showingEnd}</span> of ${sortedStudents.length} results`;
+
+        // Update Total Count in Header
+        const headerCount = document.getElementById('totalCountNumber');
+        if (headerCount) headerCount.innerText = sortedStudents.length;
+
+        prevPageBtn.disabled = currentPage <= 1;
+        nextPageBtn.disabled = currentPage >= totalPages;
+        prevPageBtn.classList.toggle('text-slate-300', currentPage <= 1);
+        prevPageBtn.classList.toggle('cursor-not-allowed', currentPage <= 1);
+
+        // Update Clear Data button state
+        const clearBtn = document.getElementById('clearDataBtn');
+        if (clearBtn) clearBtn.disabled = students.length === 0;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        renderCurrentPage();
+    }
+
+    function goToNextPage() {
+        const totalPages = Math.max(1, Math.ceil((Array.isArray(allStudents) ? allStudents.length : 0) / ITEMS_PER_PAGE));
+        if (currentPage < totalPages) {
+            currentPage += 1;
+            renderCurrentPage();
+        }
+    }
+
+    function goToPreviousPage() {
+        if (currentPage > 1) {
+            currentPage -= 1;
+            renderCurrentPage();
+        }
+    }
 
     // Modal Semester Sync
     async function syncSemesters(deptId, currentSemId = null) {
@@ -231,50 +527,27 @@
 
     // Main Filter Logic
     async function refreshList() {
-        const searchVal = studentSearch.value;
-        const deptId = filterDept.value;
-        const semId = filterSem.value;
         tableBody.style.opacity = '0.5';
         try {
-            const resp = await fetch(`/api/students/?department_id=${deptId}&semester_id=${semId}&search=${searchVal}`);
-            const students = await resp.json();
-            tableBody.innerHTML = '';
+            // Fetch the COMPLETE dataset to ensure integrity across pagination & search
+            const resp = await fetch(`/api/students/?page_size=10000`);
+            const payload = await resp.json();
+            const normalizedStudents = normalizeStudents(payload);
+            allStudents = normalizedStudents;
             tableBody.style.opacity = '1';
-            if (students.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="px-8 py-24 text-center text-slate-400 italic">No students found</td></tr>`;
-                return;
-            }
-            students.forEach(s => {
-                tableBody.innerHTML += `
-                    <tr class="hover:bg-blue-50/30 transition-all group">
-                        <td class="px-8 py-5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
-                                    ${s.university_id.slice(0, 2)}
-                                </div>
-                                <span class="text-sm font-black text-slate-900 tracking-tight">${s.university_id}</span>
-                            </div>
-                        </td>
-                        <td class="px-8 py-5 font-semibold text-slate-900">${s.name}</td>
-                        <td class="px-8 py-5">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
-                                ${s.department.name} • ${s.semester.name}
-                            </span>
-                        </td>
-                        <td class="px-8 py-5 text-right">
-                            <div class="flex items-center justify-end gap-1">
-                                <button onclick="openModal('${s.id}', '${s.university_id}', '${s.name}', '${s.department.id}', '${s.semester.id}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
-                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="handleDelete('${s.university_id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-            });
+            
+            // Re-render current page logic handles local filtering/pagination
+            renderCurrentPage();
             lucide.createIcons();
-        } catch (e) { console.error(e); }
+            // Clear selection on new fetch to maintain consistency with previous behavior
+            clearSelection();
+        } catch (e) {
+            console.error(e);
+            tableBody.style.opacity = '1';
+            allStudents = [];
+            renderCurrentPage();
+            tableBody.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic">Unable to load students</td></tr>`;
+        }
     }
 
     mDept.onchange = (e) => syncSemesters(e.target.value);
@@ -321,32 +594,201 @@
             });
             if (res.ok) {
                 showToast('Student removed');
+                if (selectedIds.has(usn)) {
+                    selectedIds.delete(usn);
+                }
                 refreshList();
             }
         }
     }
 
-    async function handleBulkUpload(event) {
-        const file = event.target.files[0];
+    async function handleBulkUpload(event, isConfirmed = false) {
+        let file;
+        if (event instanceof File) {
+            file = event;
+        } else {
+            file = event.target.files[0];
+        }
+        
         if (!file) return;
+        
         const formData = new FormData();
         formData.append('file', file);
+        if (isConfirmed) {
+            formData.append('confirm', 'true');
+        }
+
         try {
             const res = await fetch('/api/students/upload/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' },
                 body: formData
             });
+            const result = await res.json();
+            
             if (res.ok) {
-                showToast('Student list uploaded successfully');
-                refreshList();
+                if (result.status === 'mismatch') {
+                    const confirmed = await showConfirm(
+                        'Confirm Data Replacement',
+                        result.message,
+                        'Replace Data',
+                        true
+                    );
+                    if (confirmed) {
+                        // Re-upload with confirmation
+                        return handleBulkUpload(file, true);
+                    }
+                } else {
+                    showToast(result.message || 'Student list uploaded successfully');
+                    refreshList();
+                    // Update system mode indicator
+                    if (typeof updateSystemMode === 'function') updateSystemMode();
+                }
             } else {
-                showToast('Failed to upload list', 'error');
+                showToast(result.message || 'Failed to upload list', 'error');
             }
         } catch (e) {
             console.error(e);
             showToast('System error during upload', 'error');
         }
+        
+        // Reset the input so it can be used again for the same file if needed
+        if (!(event instanceof File)) {
+            event.target.value = '';
+        }
     }
+    async function handleBulkDelete() {
+        const ids = Array.from(selectedIds);
+        if (ids.length === 0) return;
+
+        const confirmed = await showConfirm(
+            `Universal Delete?`,
+            `Are you sure you want to permanently remove ${ids.length} students?`,
+            'Delete All'
+        );
+
+        if (confirmed) {
+            try {
+                const res = await fetch('/api/students/bulk-delete/', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ ids })
+                });
+                if (res.ok) {
+                    showToast(`Successfully removed ${ids.length} students`);
+                    
+                    // Update local state (Requirement: students = students.filter(...))
+                    allStudents = allStudents.filter(s => !selectedIds.has(s.university_id));
+                    
+                    clearSelection();
+                    renderCurrentPage(); 
+                    
+                    // Refresh from server to ensure sync
+                    refreshList();
+                } else {
+                    showToast('Bulk deletion failed', 'error');
+                }
+            } catch (e) { console.error(e); }
+        }
+    }
+
+    async function handleClearDataset() {
+        const confirmed = await showConfirm(
+            'Clear All Records?',
+            'Warning: This will permanently delete EVERY student in the system. This action cannot be undone.',
+            'Clear Everything'
+        );
+
+        if (confirmed) {
+            try {
+                const res = await fetch('/api/students/clear-all/', {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                if (res.ok) {
+                    showToast('Dataset cleared successfully');
+                    allStudents = [];
+                    currentPage = 1;
+                    clearSelection();
+                    renderCurrentPage();
+                    // Sync with server (refresh dropdowns etc)
+                    refreshList();
+                } else {
+                    showToast('Failed to clear dataset', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('System error during clear', 'error');
+            }
+        }
+    }
+
+    function toggleSelection(id, checked) {
+        if (checked) {
+            selectedIds.add(id);
+        } else {
+            selectedIds.delete(id);
+        }
+        updateSelectedCount();
+    }
+
+    function toggleAll(checked) {
+        // Only toggle visible students (standard UI behavior)
+        const currentCheckboxes = document.querySelectorAll('.item-checkbox');
+        currentCheckboxes.forEach(cb => {
+            cb.checked = checked;
+            if (checked) {
+                selectedIds.add(cb.value);
+            } else {
+                selectedIds.delete(cb.value);
+            }
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const count = selectedIds.size;
+        const bar = document.getElementById('bulkActions');
+        const countDisplay = document.getElementById('selectedCountDisplay');
+        const masterToggle = document.getElementById('selectAllItems');
+        
+        if (count > 0) {
+            bar.classList.remove('hidden');
+            countDisplay.innerText = count;
+        } else {
+            bar.classList.add('hidden');
+        }
+
+        // Update master checkbox state (based on CURRENT view)
+        const visibleCheckboxes = document.querySelectorAll('.item-checkbox');
+        const visibleCount = visibleCheckboxes.length;
+        if (visibleCount > 0) {
+            const checkedVisible = Array.from(visibleCheckboxes).filter(cb => cb.checked).length;
+            masterToggle.checked = (checkedVisible === visibleCount);
+            masterToggle.indeterminate = (checkedVisible > 0 && checkedVisible < visibleCount);
+        } else {
+            masterToggle.checked = false;
+            masterToggle.indeterminate = false;
+        }
+    }
+
+    function clearSelection() {
+        selectedIds.clear();
+        const masterToggle = document.getElementById('selectAllItems');
+        if (masterToggle) masterToggle.checked = false;
+        document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+        updateSelectedCount();
+    }
+    function toggleRow(event, row) {
+        // Don't toggle if we clicked a button or the checkbox directly
+        if (event.target.closest('button') || event.target.closest('input[type="checkbox"]')) return;
+        const cb = row.querySelector('.item-checkbox');
+        cb.checked = !cb.checked;
+        toggleSelection(cb.value, cb.checked);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshList();
+    });
 </script>
 {% endblock %}

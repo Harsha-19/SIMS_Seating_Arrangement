@@ -6,7 +6,19 @@ class Department(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        self.name = self.name.upper()
+        # 4. NORMALIZE DEPARTMENT VALUES
+        self.name = str(self.name).strip().upper()
+        # "B SC" -> "BSC", "B COM" -> "BCOM"
+        self.name = self.name.replace("B SC", "BSC").replace("B COM", "BCOM").replace("B A", "BA")
+        
+        # 7. VALIDATION BEFORE INSERT (Strict rejection of dirty data)
+        invalid_keywords = ["SEM", "-", "TEST", "CLASS", "SESSION"]
+        if any(kw in self.name for kw in invalid_keywords) or len(self.name) > 35:
+             # SILENTLY CLEAN or REJECT? User said "REJECT or CLEAN before insert"
+             # I will skip saving if it's clearly garbage or raise error
+             # In a production context, raising ValidationError is safer
+             raise ValidationError(f"INVALID DEPARTMENT NAME: {self.name}")
+             
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -19,6 +31,13 @@ class Semester(models.Model):
 
     class Meta:
         unique_together = ('name', 'department')
+        # Standardize ordering by name string (will handle 1st..6th reasonably well)
+        ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        from .utils import normalize_semester_name
+        self.name = normalize_semester_name(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.department.name} - {self.name}"
@@ -28,14 +47,30 @@ class Student(models.Model):
     name = models.CharField(max_length=100)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='students')
     semester = models.ForeignKey(Semester, on_delete=models.SET_NULL, null=True, related_name='students')
+    sem = models.IntegerField(null=True, blank=True)
+    sem_type = models.CharField(max_length=10, choices=[('ODD', 'ODD'), ('EVEN', 'EVEN')], null=True, blank=True)
+    section = models.CharField(max_length=10, blank=True, default='') # NEW FIELD
+    specialization = models.CharField(max_length=100, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['department']),
+            models.Index(fields=['semester']),
+            models.Index(fields=['sem_type']),
+        ]
 
     def __str__(self):
         return f"{self.university_id} - {self.name}"
 
     def save(self, *args, **kwargs):
         self.university_id = self.university_id.upper()
+        if self.sem and not self.sem_type:
+            if self.sem in [1, 3, 5]:
+                self.sem_type = 'ODD'
+            elif self.sem in [2, 4, 6]:
+                self.sem_type = 'EVEN'
         super().save(*args, **kwargs)
 
 class Room(models.Model):
@@ -98,6 +133,11 @@ class Exam(models.Model):
         sem_name = self.semester.name if self.semester else "Unknown"
         return f"{self.subject} ({dept_name} {sem_name}) | {time_range}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['date', 'subject']),
+        ]
+
 class Seating(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='seats')
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='seats')
@@ -112,6 +152,11 @@ class Seating(models.Model):
         unique_together = [
             ('exam', 'student'),
             ('exam', 'room', 'row', 'seat_position'),
+        ]
+        indexes = [
+            models.Index(fields=['student']),
+            models.Index(fields=['room']),
+            models.Index(fields=['exam']),
         ]
 
     def __str__(self):
@@ -134,3 +179,27 @@ class AttendanceEntry(models.Model):
 
     def __str__(self):
         return f"{self.student.university_id} - {'P' if self.present else 'A'}"
+class SystemSettings(models.Model):
+    SEMESTER_TYPES = [
+        ('ODD', 'ODD Semester (1, 3, 5)'),
+        ('EVEN', 'EVEN Semester (2, 4, 6)'),
+    ]
+    current_sem_type = models.CharField(max_length=10, choices=SEMESTER_TYPES, default='ODD')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "System Settings"
+
+    def __str__(self):
+        return f"System Mode: {self.current_sem_type}"
+
+    @classmethod
+    def get_current_type(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj.current_sem_type
+
+    @classmethod
+    def set_current_type(cls, sem_type):
+        obj, _ = cls.objects.get_or_create(id=1)
+        obj.current_sem_type = sem_type
+        obj.save()

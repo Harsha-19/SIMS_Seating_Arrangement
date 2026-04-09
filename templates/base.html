@@ -179,6 +179,18 @@
                     </div>
                 </div>
 
+                <!-- Semester Mode Indicator (Global Preference) -->
+                <div id="system-mode-container" class="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
+                    <button onclick="changeSystemMode('ODD')" id="mode-odd-btn" title="Set ODD Semester as Active Mode" class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2">
+                        <i data-lucide="sun" class="w-3 h-3 opacity-40"></i>
+                        ODD SEM
+                    </button>
+                    <button onclick="changeSystemMode('EVEN')" id="mode-even-btn" title="Set EVEN Semester as Active Mode" class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2">
+                        <i data-lucide="moon" class="w-3 h-3 opacity-40"></i>
+                        EVEN SEM
+                    </button>
+                </div>
+
                 <!-- Utilities -->
                 <div class="flex items-center gap-3 lg:gap-6">
                     <!-- Theme Toggle -->
@@ -348,7 +360,51 @@
             }
         };
 
+        async function updateSystemMode() {
+            const oddBtn = document.getElementById('mode-odd-btn');
+            const evenBtn = document.getElementById('mode-even-btn');
+            try {
+                const resp = await fetch('/api/settings/');
+                const data = await resp.json();
+                const mode = data.current_sem_type;
+                
+                if (mode === 'ODD') {
+                    oddBtn.className = "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm";
+                    evenBtn.className = "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 bg-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300";
+                } else {
+                    evenBtn.className = "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm";
+                    oddBtn.className = "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 bg-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300";
+                }
+            } catch (e) {
+                console.error('Failed to fetch system mode:', e);
+            }
+        }
+
+        async function changeSystemMode(newMode) {
+            try {
+                const res = await fetch('/api/settings/set_mode/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ mode: newMode, truncate: false }) // New flag to prevent deletion
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showToast(`System switched to ${newMode} mode`);
+                    updateSystemMode();
+                    if (window.location.pathname.includes('/students/')) {
+                        // Refresh display if we are on student list
+                        if (typeof setSemTypeFilter === 'function') setSemTypeFilter(newMode);
+                    }
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (e) {
+                console.error('Mode switch failed:', e);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            updateSystemMode();
             const path = window.location.pathname;
             const items = {
                 '/': 'nav-dashboard',

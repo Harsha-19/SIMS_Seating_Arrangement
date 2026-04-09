@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     StudentViewSet, RoomViewSet, ExamViewSet, 
     SeatingViewSet, AttendanceViewSet, LoginView, SeedAdminView,
-    DepartmentViewSet, SemesterViewSet
+    DepartmentViewSet, SemesterViewSet, SystemSettingsViewSet
 )
 
 router = DefaultRouter()
@@ -14,6 +14,7 @@ router.register('seating', SeatingViewSet)
 router.register('attendance', AttendanceViewSet)
 router.register('departments', DepartmentViewSet)
 router.register('semesters', SemesterViewSet)
+router.register('settings', SystemSettingsViewSet, basename='settings')
 
 urlpatterns = [
     path('auth/login', LoginView.as_view(), name='login'),

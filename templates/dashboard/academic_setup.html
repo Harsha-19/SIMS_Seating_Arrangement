@@ -139,9 +139,14 @@
         const res = await fetch('/api/departments/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ name: document.getElementById('mDeptName').value.upper() })
+            body: JSON.stringify({ name: document.getElementById('mDeptName').value.toUpperCase() })
         });
-        if (res.ok) location.reload();
+        if (res.ok) {
+            showToast('Department added successfully');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Failed to add department', 'error');
+        }
     };
 
     document.getElementById('semForm').onsubmit = async (e) => {
@@ -154,7 +159,12 @@
                 department: document.getElementById('mSemDeptId').value
             })
         });
-        if (res.ok) location.reload();
+        if (res.ok) {
+            showToast('Semester added successfully');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Failed to add semester', 'error');
+        }
     };
 
     async function deleteDept(id) {

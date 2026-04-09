@@ -46,7 +46,7 @@ class SeatingSerializer(BaseSerializer):
     exam_info = ExamSerializer(source='exam', read_only=True)
     class Meta:
         model = Seating
-        fields = ['_id', 'id', 'student', 'room', 'exam', 'row', 'bench', 'seat_position', 'student_info', 'room_info', 'exam_info', 'created_at']
+        fields = ['_id', 'id', 'student', 'room', 'exam', 'row', 'seat_position', 'student_info', 'room_info', 'exam_info', 'created_at']
 
 class AttendanceSerializer(BaseSerializer):
     exam_info = ExamSerializer(source='exam', read_only=True)
