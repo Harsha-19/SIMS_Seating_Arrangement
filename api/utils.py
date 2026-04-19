@@ -1,282 +1,525 @@
 import re
+from dataclasses import dataclass
 
-def normalize_semester_name(val):
-    if not val: return ""
-    val = val.upper().strip()
-    
-    # 1. MAPPING DICTIONARIES
-    roman_map = {
-        "I": "SEM 1", "II": "SEM 2", "III": "SEM 3",
-        "IV": "SEM 4", "V": "SEM 5", "VI": "SEM 6"
+def extract_semester(class_str):
+    if not class_str:
+        return None
+
+    val = str(class_str).upper().strip()
+
+    if "SEM" not in val:
+        return None
+
+    # STEP 1: get part before "SEM"
+    sem_part = val.split("SEM")[0].strip()
+
+    # STEP 2: get last token of the part before "SEM"
+    # Example: "II SEM" -> "II"
+    # Example: "BCA II SEM" -> "II"
+    tokens = sem_part.split()
+    if not tokens:
+        return None
+    sem_token = tokens[-1] # User requested "Take token before SEM"
+
+    ROMAN_MAP = {
+        "I": 1, "II": 2, "III": 3,
+        "IV": 4, "V": 5, "VI": 6
     }
+
+    # STEP 3: match Roman or Numeric
+    if sem_token in ROMAN_MAP:
+        return ROMAN_MAP[sem_token]
     
-    keyword_map = {
-        "1ST": "SEM 1", "2ND": "SEM 2", "3RD": "SEM 3",
-        "4TH": "SEM 4", "5TH": "SEM 5", "6TH": "SEM 6"
-    }
+    # Check if numeric
+    numeric_match = re.search(r'(\d+)', sem_token)
+    if numeric_match:
+        sem_num = int(numeric_match.group(1))
+        if 1 <= sem_num <= 6:
+            return sem_num
 
-    # 2. ROMAN NUMERAL EXTRACTION (EXACT WORD BOUNDARY)
-    # Order matters: Longest first inside the group to prevent 'III' being matched as 'I'
-    roman_pattern = r"\b(III|II|IV|VI|V|I)\b"
-    roman_match = re.search(roman_pattern, val)
-    if roman_match:
-        roman = roman_match.group(1)
-        return roman_map.get(roman, "")
+    return None
 
-    # 3. FALLBACK: KEYWORD EXTRACTION (1ST, 2ND, etc.)
-    keyword_pattern = r"\b(1ST|2ND|3RD|4TH|5TH|6TH)\b"
-    keyword_match = re.search(keyword_pattern, val)
-    if keyword_match:
-        k = keyword_match.group(1)
-        return keyword_map.get(k, "")
-
-    # 4. FALLBACK: RAW DIGIT EXTRACTION
-    digit_match = re.search(r"\b([1-6])\b", val)
-    if digit_match:
-        return f"SEM {digit_match.group(1)}"
-
-    # 5. VALIDATE: ONLY ALLOW SEM 1 TO SEM 6
-    # If the value is already 'SEM X', ensure it's in range
-    if val.startswith("SEM "):
-        try:
-            num = int(val.split(" ")[1])
-            if 1 <= num <= 6: return val
-        except: pass
-
-    return ""
-
-def sanitize_class_info(raw_class_string):
-    if not raw_class_string:
-        return {"semester": "", "department": "", "specialization": "", "section": ""}
-        
-    val = str(raw_class_string).upper().strip()
+def extract_program_and_section(class_str):
+    """
+    Extracts program and section from the part after 'SEM'
+    Rule: Last token = section IF single letter (A/B/C/D). 
+    Remaining = program.
+    """
+    if not class_str:
+        return {"program": "UNKNOWN", "section": ""}
     
-    # 1. Normalize Semester First
-    semester = normalize_semester_name(val)
+    val = str(class_str).upper().strip()
     
-    # 2. Extract Section (Check for trailing single char or "SEC X")
+    remainder = val
+    if "SEM" in val:
+        parts = val.split("SEM", 1)
+        remainder = parts[1].strip()
+        # Remove leading numbers (e.g. "1" in "I SEM 1 BCA A")
+        remainder = re.sub(r'^\d+\b', '', remainder).strip()
+
+    tokens = remainder.split()
+    if not tokens:
+        return {"program": "UNKNOWN", "section": ""}
+    
     section = ""
-    sec_match = re.search(r'\b(SEC\s+)?([A-D]|ALPHA|BETA)\b$', val)
-    if sec_match:
-        section = sec_match.group(2)
-        val = val[:sec_match.start()].strip()
-        
-    # 3. Clean Semester logic from String to isolate Dept
-    clean_val = val
-    sem_variants = ["1ST", "2ND", "3RD", "4TH", "5TH", "6TH", "7TH", "8TH", 
-                    "SEM", "SEMESTER", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"]
-    for sv in sem_variants:
-        clean_val = re.sub(rf'\b{sv}\b', '', clean_val).strip()
-
-    # 4. Extract Specialization (Check for dash or parenthesis)
-    specialization = ""
-    if "-" in clean_val:
-        parts = clean_val.split("-", 1)
-        clean_val = parts[0].strip()
-        specialization = parts[1].strip()
-
-    # 6. Extract Department (STRICT KEYWORD MATCHING)
-    whitelist = ["BCA", "BBA", "BCOM", "BSC", "BA"]
-    department = ""
-    check_val = val.replace("B COM", "BCOM").replace("B SC", "BSC").replace("B A ", "BA ")
+    last_token = tokens[-1]
+    if len(last_token) == 1 and last_token in "ABCD":
+        section = last_token
+        program_part = " ".join(tokens[:-1]).strip()
+    else:
+        program_part = " ".join(tokens).strip()
     
-    for major in whitelist:
-        if major in check_val:
-            department = major
-            break
-            
-    if department not in whitelist:
-        department = ""
+    # Normalize program name (B COM -> BCOM, B SC -> BSC, B A -> BA)
+    program = program_part.replace("B COM", "BCOM").replace("B SC", "BSC").replace("B A", "BA")
+    if not program:
+        program = "UNKNOWN"
+    
+    return {"program": program, "section": section}
+
+def sanitize_academic_info(raw_string):
+    """
+    Unified 3-Step Extraction Pipeline
+    """
+    if not raw_string:
+        return None
+    val = str(raw_string).upper().strip()
+    semester = extract_semester(val)
+    if semester is None:
+        return None
+    prog_sec = extract_program_and_section(val)
+    return {
+        "semester": semester,
+        "program": prog_sec["program"],
+        "section": prog_sec["section"],
+        "sem_type": "ODD" if semester in [1, 3, 5] else "EVEN"
+    }
+
+
+def natural_sort_key(value):
+    normalized = str(value or '').strip().upper()
+    if not normalized:
+        return ((1, ''),)
+
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in re.split(r'(\d+)', normalized)
+        if part
+    )
+
+
+def extract_identifier_parts(value):
+    normalized = str(value or '').strip().upper()
+    match = re.match(r'^(.*?)(\d+)$', normalized)
+    if not match:
+        return normalized, None
+    return match.group(1), int(match.group(2))
+
+
+def are_consecutive_identifiers(left_value, right_value):
+    left_prefix, left_number = extract_identifier_parts(left_value)
+    right_prefix, right_number = extract_identifier_parts(right_value)
+    if left_number is None or right_number is None:
+        return False
+    return left_prefix == right_prefix and abs(left_number - right_number) == 1
+
+
+def extract_student_identifier(student):
+    direct_identifier = getattr(student, 'reg_no', None) or getattr(student, 'university_id', None)
+    if direct_identifier not in (None, ''):
+        return str(direct_identifier).strip().upper()
+
+    nested_student = getattr(student, 'student', None)
+    if nested_student is not None and nested_student is not student:
+        return extract_student_identifier(nested_student)
+
+    fallback_identifier = getattr(student, 'id', None)
+    if fallback_identifier is not None:
+        return str(fallback_identifier)
+
+    return str(student).strip().upper()
+
+
+def resolve_student_record(student):
+    if getattr(student, 'reg_no', None) or getattr(student, 'university_id', None):
+        return student
+
+    nested_student = getattr(student, 'student', None)
+    if nested_student is not None:
+        return nested_student
+
+    return student
+
+
+def sort_students_by_university_id(students):
+    materialized_students = list(students)
+    return sorted(materialized_students, key=lambda student: natural_sort_key(extract_student_identifier(student)))
+
+
+def students_are_sorted_by_university_id(students):
+    identifiers = [extract_student_identifier(student) for student in students]
+    return identifiers == sorted(identifiers, key=natural_sort_key)
+
+
+def sort_rooms_for_seating(rooms):
+    materialized_rooms = list(rooms)
+    return sorted(
+        materialized_rooms,
+        key=lambda room: natural_sort_key(getattr(room, 'room_number', None) or getattr(room, 'id', None)),
+    )
+
+
+@dataclass(frozen=True)
+class SeatingCandidate:
+    student: object
+    exam_group: object = None
+    subject: str = ''
+    program_name: str = ''
+    semester: int | None = None
+    university_id: str = ''
+    group_key: tuple = ()
+
+
+@dataclass(frozen=True)
+class SeatSlot:
+    room: object
+    row: int
+    col: int
+    seat_pos: str
+
+
+def build_seating_candidate(student, *, exam_group=None, subject='', program_name='', semester=None, group_key=()):
+    student_record = resolve_student_record(student)
+    identifier = extract_student_identifier(student_record)
+    normalized_subject = str(subject or '').strip().upper()
+    return SeatingCandidate(
+        student=student_record,
+        exam_group=exam_group,
+        subject=normalized_subject,
+        program_name=str(program_name or '').strip().upper(),
+        semester=semester,
+        university_id=identifier,
+        group_key=group_key,
+    )
+
+
+def candidate_subject(candidate):
+    return str(getattr(candidate, 'subject', '') or '').strip().upper()
+
+
+def column_to_seat_position(room, column_index):
+    if column_index < room.left_seats:
+        return f"Left Seat {column_index + 1}"
+    if column_index < room.left_seats + room.middle_seats:
+        return f"Middle Seat {column_index - room.left_seats + 1}"
+    return f"Right Seat {column_index - room.left_seats - room.middle_seats + 1}"
+
+
+def zigzag_positions(rows, cols):
+    positions = []
+    for row_number in range(rows):
+        column_indexes = list(range(cols))
+        if row_number % 2 == 1:
+            column_indexes.reverse()
+        for column_index in column_indexes:
+            positions.append((row_number, column_index))
+    return positions
+
+
+def checkerboard_zigzag_positions(rows, cols):
+    base_positions = zigzag_positions(rows, cols)
+    primary_positions = [position for position in base_positions if (position[0] + position[1]) % 2 == 0]
+    secondary_positions = [position for position in base_positions if (position[0] + position[1]) % 2 == 1]
+    return primary_positions + secondary_positions
+
+
+def build_room_seat_slots(room):
+    total_columns = room.left_seats + room.middle_seats + room.right_seats
+    slots = []
+    for row_index, column_index in checkerboard_zigzag_positions(room.rows, total_columns):
+        slots.append(
+            SeatSlot(
+                room=room,
+                row=row_index + 1,
+                col=column_index,
+                seat_pos=column_to_seat_position(room, column_index),
+            )
+        )
+    return slots
+
+
+def iter_room_seat_slots(room):
+    for slot in build_room_seat_slots(room):
+        yield slot.row, slot.seat_pos
+
+
+def round_robin_interleave(grouped_candidates):
+    normalized_groups = [list(group) for group in grouped_candidates if group]
+    if not normalized_groups:
+        return []
+
+    max_group_size = max(len(group) for group in normalized_groups)
+    final_sequence = []
+    for index in range(max_group_size):
+        for group in normalized_groups:
+            if index < len(group):
+                final_sequence.append(group[index])
+    return final_sequence
+
+
+def normalize_candidate_groups(grouped_candidates, *, split_single_group=False):
+    normalized_groups = [list(group) for group in grouped_candidates if group]
+    if split_single_group and len(normalized_groups) == 1 and len(normalized_groups[0]) > 1:
+        single_group = normalized_groups[0]
+        midpoint = (len(single_group) + 1) // 2
+        return [single_group[:midpoint], single_group[midpoint:]]
+    return normalized_groups
+
+
+def spread_consecutive_candidates(sequence):
+    materialized_sequence = list(sequence)
+    midpoint = (len(materialized_sequence) + 1) // 2
+    first_half = materialized_sequence[:midpoint]
+    second_half = materialized_sequence[midpoint:]
+
+    spread_sequence = []
+    for index, candidate in enumerate(first_half):
+        spread_sequence.append(candidate)
+        if index < len(second_half):
+            spread_sequence.append(second_half[index])
+    return spread_sequence
+
+
+def linear_candidate_conflict(left_candidate, right_candidate, exam_type):
+    if left_candidate is None or right_candidate is None:
+        return False
+    if exam_type == 'CORE' and candidate_subject(left_candidate) and candidate_subject(left_candidate) == candidate_subject(right_candidate):
+        return True
+    return are_consecutive_identifiers(left_candidate.university_id, right_candidate.university_id)
+
+
+def rebalance_candidate_sequence(sequence, exam_type):
+    remaining_candidates = list(sequence)
+    rebalanced_sequence = []
+
+    while remaining_candidates:
+        previous_candidate = rebalanced_sequence[-1] if rebalanced_sequence else None
+        chosen_index = None
+
+        for index, candidate in enumerate(remaining_candidates):
+            if not linear_candidate_conflict(previous_candidate, candidate, exam_type):
+                chosen_index = index
+                break
+
+        if chosen_index is None:
+            chosen_index = 0
+
+        rebalanced_sequence.append(remaining_candidates.pop(chosen_index))
+
+    return rebalanced_sequence
+
+
+def sequence_penalty(sequence, exam_type):
+    if len(sequence) < 2:
+        return 0
+
+    penalty = 0
+    for index in range(1, len(sequence)):
+        left_candidate = sequence[index - 1]
+        right_candidate = sequence[index]
+        if exam_type == 'CORE' and candidate_subject(left_candidate) and candidate_subject(left_candidate) == candidate_subject(right_candidate):
+            penalty += 10
+        if are_consecutive_identifiers(left_candidate.university_id, right_candidate.university_id):
+            penalty += 1
+    return penalty
+
+
+def prepare_candidate_sequence(grouped_candidates, exam_type):
+    normalized_groups = normalize_candidate_groups(grouped_candidates)
+    if not normalized_groups:
+        return []
+    if len(normalized_groups) == 1:
+        return list(normalized_groups[0])
+
+    base_sequence = round_robin_interleave(normalized_groups)
+    spread_sequence = spread_consecutive_candidates(base_sequence)
+    chosen_sequence = spread_sequence if sequence_penalty(spread_sequence, exam_type) < sequence_penalty(base_sequence, exam_type) else base_sequence
+    return rebalance_candidate_sequence(chosen_sequence, exam_type)
+
+
+def neighboring_slot_keys(slot):
+    for row_delta, col_delta in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+        yield (slot.room.id, slot.row + row_delta, slot.col + col_delta)
+
+
+def candidate_conflicts_with_neighbors(candidate, slot, assignment_map, exam_type):
+    for slot_key in neighboring_slot_keys(slot):
+        neighbor_assignment = assignment_map.get(slot_key)
+        if neighbor_assignment is None:
+            continue
+        neighbor_candidate = neighbor_assignment['candidate']
+        if exam_type == 'CORE' and candidate_subject(candidate) and candidate_subject(candidate) == candidate_subject(neighbor_candidate):
+            return True
+        if are_consecutive_identifiers(candidate.university_id, neighbor_candidate.university_id):
+            return True
+    return False
+
+
+def validate_seating_assignments(assignments, exam_type):
+    assignment_map = {
+        (assignment['room'].id, assignment['row'], assignment['col']): assignment
+        for assignment in assignments
+    }
+    same_subject_adjacent = []
+    consecutive_id_adjacent = []
+
+    for assignment in assignments:
+        current_key = (assignment['room'].id, assignment['row'], assignment['col'])
+        for neighbor_key in (
+            (assignment['room'].id, assignment['row'] + 1, assignment['col']),
+            (assignment['room'].id, assignment['row'], assignment['col'] + 1),
+        ):
+            neighbor_assignment = assignment_map.get(neighbor_key)
+            if neighbor_assignment is None:
+                continue
+
+            current_candidate = assignment['candidate']
+            neighbor_candidate = neighbor_assignment['candidate']
+
+            if exam_type == 'CORE' and candidate_subject(current_candidate) and candidate_subject(current_candidate) == candidate_subject(neighbor_candidate):
+                same_subject_adjacent.append((assignment, neighbor_assignment))
+
+            if are_consecutive_identifiers(current_candidate.university_id, neighbor_candidate.university_id):
+                consecutive_id_adjacent.append((assignment, neighbor_assignment))
 
     return {
-        "semester": semester if semester.startswith("SEM") else "",
-        "department": department,
-        "specialization": specialization,
-        "section": section
+        'same_subject_adjacent': same_subject_adjacent,
+        'consecutive_id_adjacent': consecutive_id_adjacent,
     }
+
+
+def assign_candidates_to_seat_slots(candidate_sequence, rooms, exam_type):
+    ordered_rooms = sort_rooms_for_seating(rooms)
+    remaining_candidates = list(candidate_sequence)
+    assignments = []
+    assignment_map = {}
+    room_logs = []
+
+    for room in ordered_rooms:
+        if not remaining_candidates:
+            break
+
+        room_slots = build_room_seat_slots(room)
+        room_seated = 0
+        room_first_identifier = None
+        room_last_identifier = None
+
+        for slot in room_slots:
+            if not remaining_candidates:
+                break
+
+            chosen_index = None
+            for index, candidate in enumerate(remaining_candidates):
+                if not candidate_conflicts_with_neighbors(candidate, slot, assignment_map, exam_type):
+                    chosen_index = index
+                    break
+
+            if chosen_index is None:
+                chosen_index = 0
+
+            candidate = remaining_candidates.pop(chosen_index)
+            assignment = {
+                'room': room,
+                'row': slot.row,
+                'col': slot.col,
+                'seat_pos': slot.seat_pos,
+                'student': candidate.student,
+                'exam_group': candidate.exam_group,
+                'candidate': candidate,
+            }
+            assignments.append(assignment)
+            assignment_map[(room.id, slot.row, slot.col)] = assignment
+            room_seated += 1
+
+            if room_first_identifier is None:
+                room_first_identifier = candidate.university_id
+            room_last_identifier = candidate.university_id
+
+        if room_seated:
+            room_logs.append(
+                f"Room {room.room_number} seated {room_seated} student(s) from {room_first_identifier} to {room_last_identifier}."
+            )
+
+    return assignments, room_logs
+
+
+def orchestrate_exam_seating(grouped_candidates, rooms, exam_type='CORE', *, split_single_group=False):
+    normalized_groups = normalize_candidate_groups(grouped_candidates, split_single_group=split_single_group)
+    flat_candidates = [candidate for group in normalized_groups for candidate in group]
+    candidate_sequence = prepare_candidate_sequence(normalized_groups, exam_type)
+    assignments, room_logs = assign_candidates_to_seat_slots(candidate_sequence, rooms, exam_type)
+    diagnostics = validate_seating_assignments(assignments, exam_type)
+
+    unique_subjects = sorted({candidate_subject(candidate) for candidate in flat_candidates if candidate_subject(candidate)})
+    metrics = {
+        'total': len(flat_candidates),
+        'allocated': len(assignments),
+        'remaining': len(flat_candidates) - len(assignments),
+    }
+
+    return {
+        'assignments': assignments,
+        'logs': room_logs,
+        'metrics': metrics,
+        'diagnostics': {
+            'group_count': len(normalized_groups),
+            'subject_count': len(unique_subjects),
+            'same_subject_adjacent': len(diagnostics['same_subject_adjacent']),
+            'consecutive_id_adjacent': len(diagnostics['consecutive_id_adjacent']),
+        },
+        'violations': diagnostics,
+        'ordered_ids': [candidate.university_id for candidate in candidate_sequence],
+        'ordered_subjects': unique_subjects,
+    }
+
 
 def allocate_multi_room_seating(students, rooms):
     """
-    PROFESSIONAL EXAM SEATING ENGINE (Multi-Room / Deterministic)
-    Phases 5-10: Timetable-driven allocation with cyclic column distribution.
+    Backward-compatible deterministic multi-room seating engine.
     """
-    import random
-    
-    from collections import deque
-    # GROUP BY DEPARTMENT for cyclic distribution
-    dept_groups = {}
-    for s in students:
-        # SAFETY CHECK: Ensure department and name exist
-        if not s.department or not s.department.name:
-            continue
-            
-        d_name = s.department.name.upper()
-        if d_name not in dept_groups:
-            dept_groups[d_name] = deque() # Use deque for O(1) popleft
-        dept_groups[d_name].append(s)
-    
-    # Sort for deterministic behavior
-    depts = sorted(dept_groups.keys())
-    for d in depts:
-        # Convert to list to shuffle, then back to deque
-        temp_list = list(dept_groups[d])
-        random.shuffle(temp_list)
-        dept_groups[d] = deque(temp_list)
-    
-    # Global Tracking
-    results = []
-    room_logs = []
-    total_to_seat = len(students)
-    seated_count = 0
-    
-    # PHASE 5: Room-by-Room Allocation Flow
+    ordered_students = sort_students_by_university_id(students)
+    if not students_are_sorted_by_university_id(ordered_students):
+        raise AssertionError("Students are not sorted properly")
+
+    grouped_candidates = [[build_seating_candidate(student) for student in ordered_students]]
+    return orchestrate_exam_seating(grouped_candidates, rooms, exam_type='COMMON')
+
+
+def assign_seats_gen(students, rooms):
+    students = list(students)
+    rooms = list(rooms)
+
     for room in rooms:
-        if seated_count >= total_to_seat: break
-        
-        r_count = room.rows
-        c_count = room.left_seats + room.middle_seats + room.right_seats
-        room_matrix = [[None for _ in range(c_count)] for _ in range(r_count)]
-        
-        last_student_in_room = None
-        # PHASE 7 & 6: Column-Wise Filling
-        for c in range(c_count):
-            # Assign department to this column (Phase 6) 
-            pref_dept = depts[c % len(depts)] if depts else "N/A"
-            
-            for r in range(r_count):
-                student = None
-                
-                # Check preferred department (Phase 7)
-                if pref_dept in dept_groups and dept_groups[pref_dept]:
-                    student = dept_groups[pref_dept].popleft()
-                else:
-                    # Edge Case: Dept ends early (Phase 8) - Pull from any available
-                    found_alt = False
-                    for alt_dept in depts:
-                        if dept_groups[alt_dept]:
-                            student = dept_groups[alt_dept].popleft()
-                            found_alt = True
-                            break
-                    if not found_alt: break # No students left anywhere
-                            
-                if student:
-                    room_matrix[r][c] = student
-                    seated_count += 1
-                    
-                    if c < room.left_seats:
-                        sec, pos = "Left", c + 1
-                    elif c < room.left_seats + room.middle_seats:
-                        sec, pos = "Middle", c - room.left_seats + 1
-                    else:
-                        sec, pos = "Right", c - room.left_seats - room.middle_seats + 1
-                    
-                    results.append({
-                        'room': room,
-                        'row': r + 1,
-                        'seat_pos': f"{sec} Seat {pos}",
-                        'student': student,
-                    })
-                    last_student_in_room = f"{student.university_id} / {student.name}"
+        if room.rows < 0 or room.left_seats < 0 or room.middle_seats < 0 or room.right_seats < 0:
+            raise ValueError("Insufficient capacity: room layout values must be non-negative.")
 
-                if seated_count >= total_to_seat: break
-            if seated_count >= total_to_seat: break
-            
-        # PHASE 5 notification data
-        if last_student_in_room:
-            room_logs.append(f"Room {room.room_number} filled. Last student: {last_student_in_room}")
+    total_capacity = sum(room.rows * (room.left_seats + room.middle_seats + room.right_seats) for room in rooms)
+    if len(students) > total_capacity:
+        raise ValueError("Insufficient capacity for all students.")
 
-    # PHASE 10: Validation metrics
-    return {
-        'assignments': results,
-        'logs': room_logs,
-        'metrics': {
-            'total': total_to_seat,
-            'allocated': seated_count,
-            'remaining': total_to_seat - seated_count
-        }
-    }
+    result = allocate_multi_room_seating(students, rooms)
+    for assignment in result['assignments']:
+        yield assignment['room'], assignment['row'], assignment['seat_pos'], assignment['student']
+
 def extract_semester_info(row_data, header_idx):
-    """
-    Implements 3-step priority logic for semester extraction.
-    STEP 1: Check "Semester/Sem" columns.
-    STEP 2: Extract from "Class" column using patterns.
-    STEP 3: Reject if unresolvable.
-    Returns (semester_num, sem_type) or (None, None).
-    """
-    sem_val = ""
-    class_val = ""
+    sources = []
+    for key in ['semester', 'class']:
+        idx = header_idx.get(key)
+        if idx is not None and idx < len(row_data) and row_data[idx] is not None:
+            sources.append(str(row_data[idx]).strip().upper())
     
-    # Header Mapping Priority
-    idx_sem = header_idx.get('semester')
-    idx_class = header_idx.get('class')
-    
-    if idx_sem is not None:
-        sem_val = str(row_data[idx_sem]).strip().upper() if row_data[idx_sem] is not None else ""
-    
-    if idx_class is not None:
-        class_val = str(row_data[idx_class]).strip().upper() if row_data[idx_class] is not None else ""
-
-    # STEP 1: Direct Semester Detection
-    if sem_val:
-        num = detect_semester_number(sem_val)
-        if num: return num, get_sem_type(num)
-
-    # STEP 2: Pattern Extraction from Class
-    if class_val:
-        num = detect_semester_number(class_val)
-        if num: return num, get_sem_type(num)
-
-    return None, None
+    if not sources:
+        return None
+    return extract_semester(sources[0])
 
 def detect_semester_number(val):
-    if not val: return None
-    val = val.upper().strip()
-    
-    roman_map = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6}
-    
-    # 1. Direct Digit Check
-    digit_match = re.search(r'\b([1-6])\b', val)
-    if digit_match:
-        return int(digit_match.group(1))
-        
-    # 2. Roman Numeral Check
-    roman_pattern = r'\b(III|II|IV|VI|V|I)\b'
-    roman_match = re.search(roman_pattern, val)
-    if roman_match:
-        return roman_map.get(roman_match.group(1))
-        
-    # 3. Keyword Pattern Check (1st Sem, etc.)
-    keyword_match = re.search(r'\b([1-6])(ST|ND|RD|TH)\b', val)
-    if keyword_match:
-        return int(keyword_match.group(1))
-        
-    return None
-
-def get_sem_type(num):
-    if num in [1, 3, 5]: return 'ODD'
-    if num in [2, 4, 6]: return 'EVEN'
-    return None
-
-def identify_semester_group(sem_name):
-    """
-    Legacy helper kept for compatibility if needed, 
-    prefer extract_semester_info for new pipeline.
-    """
-    num = detect_semester_number(sem_name)
-    return get_sem_type(num) if num else None
-
-def validate_semester_group_consistency(sem_names):
-    """
-    Checks if a list of semester names all belong to the same group.
-    Returns (group, is_consistent).
-    """
-    detected_groups = set()
-    for name in sem_names:
-        group = identify_semester_group(name)
-        if group:
-            detected_groups.add(group)
-    
-    if len(detected_groups) > 1:
-        return None, False
-    
-    return detected_groups.pop() if detected_groups else None, True
+    return extract_semester(val)

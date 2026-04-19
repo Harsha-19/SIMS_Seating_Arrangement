@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.IgnoreWellKnownMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -129,3 +129,32 @@ LOGOUT_REDIRECT_URL = '/login/'
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s %(levelname)s [%(name)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'loggers': {
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'ERROR',  # Suppress 404 logs
+            'propagate': False,
+        },
+        'api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

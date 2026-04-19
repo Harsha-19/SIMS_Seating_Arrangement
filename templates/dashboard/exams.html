@@ -62,7 +62,7 @@
                                 </div>
                                 <div class="space-y-1">
                                     <h4 class="font-black text-slate-900 text-lg group-hover:text-orange-600 transition-colors uppercase leading-none">{{ exam.subject }}</h4>
-                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ exam.department.name }} • {{ exam.semester.name }}</p>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ exam.display_programs }} • {{ exam.display_semesters }} • {{ exam.get_exam_type_display }}</p>
                                 </div>
                             </div>
                         </td>
@@ -90,11 +90,12 @@
                                     <i data-lucide="printer" class="w-4 h-4"></i>
                                     <span class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover/btn:opacity-100 transition-opacity uppercase tracking-widest whitespace-nowrap">Print Sheets</span>
                                 </a>
+                                {% if not exam.is_grouped_exam %}
                                 <button 
                                     data-id="{{ exam.id|escapejs }}"
                                     data-subject="{{ exam.subject|escapejs }}"
-                                    data-department="{{ exam.department.id|escapejs }}"
-                                    data-semester="{{ exam.semester.id|escapejs }}"
+                                    data-department="{{ exam.program.id|default:''|escapejs }}"
+                                    data-semester="{{ exam.semester|default:''|escapejs }}"
                                     data-date="{{ exam.date|date:'Y-m-d'|escapejs }}"
                                     data-start="{{ exam.start_time|time:'H:i'|escapejs }}"
                                     data-end="{{ exam.end_time|time:'H:i'|escapejs }}"
@@ -102,6 +103,7 @@
                                     class="p-3 bg-white border border-slate-200 text-slate-400 hover:text-orange-600 hover:border-orange-200 rounded-xl transition-all shadow-sm">
                                     <i data-lucide="pencil" class="w-4 h-4"></i>
                                 </button>
+                                {% endif %}
                                 <button onclick="handleDelete('{{ exam.id|escapejs }}')" class="p-3 bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-200 rounded-xl transition-all shadow-sm"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                             </div>
                         </td>
@@ -142,9 +144,6 @@
                     <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Department</label>
                     <select id="mCourse" name="department" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all">
                         <option value="">Select Department</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.name }}</option>
-                        {% endfor %}
                     </select>
                 </div>
                 <div class="space-y-2">
@@ -181,127 +180,265 @@
 
 {% block extra_js %}
 <script>
-    const modal = document.getElementById('examModal');
-    const form = document.getElementById('examForm');
-    const deptSelect = document.getElementById('mCourse');
-    const semSelect = document.getElementById('mSemester');
-    let editId = '';
+    (() => {
+        const examModal = document.getElementById('examModal');
+        const examForm = document.getElementById('examForm');
+        const examDepartmentSelect = document.getElementById('mCourse');
+        const examSemesterSelect = document.getElementById('mSemester');
+        const examTitle = document.getElementById('modalTitle');
+        const examSubjectInput = document.getElementById('mSubject');
+        const examDateInput = document.getElementById('mDate');
+        const examStartTimeInput = document.getElementById('mStartTime');
+        const examEndTimeInput = document.getElementById('mEndTime');
+        let examEditId = '';
+        let examDepartmentsPromise = null;
 
-    async function syncSemesters(deptId, currentSemId = null) {
-        if (!deptId) {
-            semSelect.innerHTML = '<option value="">Select Department First</option>';
-            semSelect.disabled = true;
-            return;
+        function renderDepartmentOptions(departments, selectedDepartmentId = '') {
+            examDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+
+            departments.forEach((department) => {
+                const option = document.createElement('option');
+                option.value = department.id;
+                option.textContent = department.name;
+                if (selectedDepartmentId && String(department.id) === String(selectedDepartmentId)) {
+                    option.selected = true;
+                }
+                examDepartmentSelect.appendChild(option);
+            });
         }
 
-        semSelect.disabled = true;
-        semSelect.innerHTML = '<option value="">Loading...</option>';
-
-        try {
-            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
-            const data = await resp.json();
-            
-            semSelect.innerHTML = '';
-            if (data.length === 0) {
-                semSelect.innerHTML = '<option value="">No Semesters Found</option>';
-            } else {
-                data.forEach(sem => {
-                    const opt = document.createElement('option');
-                    opt.value = sem.id;
-                    opt.textContent = sem.name;
-                    if (currentSemId && sem.id == currentSemId) opt.selected = true;
-                    semSelect.appendChild(opt);
-                });
-                semSelect.disabled = false;
+        async function ensureDepartmentsLoaded(selectedDepartmentId = '') {
+            if (!examDepartmentsPromise) {
+                examDepartmentsPromise = fetch('/api/departments/', {
+                    headers: { 'Accept': 'application/json' }
+                })
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch departments');
+                        }
+                        const departments = await response.json();
+                        console.log('Fetched departments:', departments);
+                        return departments;
+                    })
+                    .catch((error) => {
+                        examDepartmentsPromise = null;
+                        throw error;
+                    });
             }
-        } catch (e) {
-            console.error(e);
-            semSelect.innerHTML = '<option value="">Error Loading</option>';
+
+            try {
+                const departments = await examDepartmentsPromise;
+                renderDepartmentOptions(departments, selectedDepartmentId);
+                return departments;
+            } catch (error) {
+                console.error(error);
+                examDepartmentSelect.innerHTML = '<option value="">Unable to load departments</option>';
+                showToast('Failed to load departments', 'error');
+                return [];
+            }
         }
-    }
 
-    deptSelect.addEventListener('change', (e) => syncSemesters(e.target.value));
+        async function syncExamSemesters(departmentId, currentSemesterId = null) {
+            if (!departmentId) {
+                examSemesterSelect.innerHTML = '<option value="">Select Department First</option>';
+                examSemesterSelect.disabled = true;
+                return;
+            }
 
-    async function openModal(id = '', subject = '', course = '', semester = '', date = '', start = '', end = '') {
-        editId = id;
-        document.getElementById('modalTitle').innerText = id ? 'Edit Exam' : 'Add Exam';
-        document.getElementById('mSubject').value = subject;
-        document.getElementById('mCourse').value = course;
-        
-        await syncSemesters(course, semester);
-        
-        document.getElementById('mDate').value = date;
-        document.getElementById('mStartTime').value = start;
-        document.getElementById('mEndTime').value = end;
-        modal.classList.remove('hidden');
-    }
+            examSemesterSelect.disabled = true;
+            examSemesterSelect.innerHTML = '<option value="">Loading...</option>';
 
-    function handleEdit(btn) {
-        const d = btn.dataset;
-        openModal(d.id, d.subject, d.department, d.semester, d.date, d.start, d.end);
-    }
+            try {
+                const response = await fetch(`/api/semesters/?department_id=${departmentId}`);
+                if (!response.ok) {
+                    throw new Error(`Semester API error: ${response.status}`);
+                }
+                const semesters = await response.json();
+                console.log('Semesters:', semesters);
 
-    function closeModal() {
-        modal.classList.add('hidden');
-        form.reset();
-    }
+                examSemesterSelect.innerHTML = '';
+                if (semesters.length === 0) {
+                    examSemesterSelect.innerHTML = '<option value="">No Semesters Found</option>';
+                    return;
+                }
 
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-        const data = {
-            subject: document.getElementById('mSubject').value.toUpperCase(),
-            department: document.getElementById('mCourse').value,
-            semester: document.getElementById('mSemester').value,
-            date: document.getElementById('mDate').value,
-            start_time: document.getElementById('mStartTime').value,
-            end_time: document.getElementById('mEndTime').value
+                semesters.forEach((semester) => {
+                    const option = document.createElement('option');
+                    option.value = semester.id;
+                    option.textContent = semester.name || `Sem ${semester.number}`;
+                    if (currentSemesterId && semester.id == currentSemesterId) {
+                        option.selected = true;
+                    }
+                    examSemesterSelect.appendChild(option);
+                });
+                examSemesterSelect.disabled = false;
+            } catch (error) {
+                console.error('Error loading semesters:', error);
+                examSemesterSelect.innerHTML = '<option value="">Error Loading</option>';
+            }
+        }
+
+        async function openExamModal(
+            id = '',
+            subject = '',
+            departmentId = '',
+            semesterId = '',
+            date = '',
+            startTime = '',
+            endTime = ''
+        ) {
+            examEditId = id;
+            examTitle.innerText = id ? 'Edit Exam' : 'Add Exam';
+            examSubjectInput.value = subject;
+            await ensureDepartmentsLoaded(departmentId);
+
+            await syncExamSemesters(departmentId, semesterId);
+
+            examDateInput.value = date;
+            examStartTimeInput.value = startTime;
+            examEndTimeInput.value = endTime;
+            examModal.classList.remove('hidden');
+        }
+
+        function extractApiError(payload) {
+            if (!payload) {
+                return '';
+            }
+
+            if (typeof payload === 'string') {
+                return payload;
+            }
+
+            if (Array.isArray(payload)) {
+                return payload.find(Boolean) || '';
+            }
+
+            if (typeof payload.message === 'string') {
+                return payload.message;
+            }
+
+            if (Array.isArray(payload.message) && payload.message.length) {
+                return payload.message[0];
+            }
+
+            if (typeof payload.error === 'string') {
+                return payload.error;
+            }
+
+            const sources = [payload.errors, payload];
+            for (const source of sources) {
+                if (!source || typeof source !== 'object') {
+                    continue;
+                }
+
+                for (const value of Object.values(source)) {
+                    if (Array.isArray(value) && value.length) {
+                        return value[0];
+                    }
+                    if (value && typeof value === 'object') {
+                        const nested = extractApiError(value);
+                        if (nested) {
+                            return nested;
+                        }
+                    }
+                }
+            }
+
+            return '';
+        }
+
+        function closeExamModal() {
+            examModal.classList.add('hidden');
+            examForm.reset();
+            examEditId = '';
+            ensureDepartmentsLoaded();
+            examSemesterSelect.innerHTML = '<option value="">Select Department First</option>';
+            examSemesterSelect.disabled = true;
+        }
+
+        function handleExamEdit(button) {
+            const data = button.dataset;
+            openExamModal(
+                data.id,
+                data.subject,
+                data.department,
+                data.semester,
+                data.date,
+                data.start,
+                data.end
+            );
+        }
+
+        async function handleExamDelete(id) {
+            const confirmed = await showConfirm(
+                'Delete Exam?',
+                'Are you sure? This will also remove any seating plans for this exam.',
+                'Delete'
+            );
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/api/exams/${id}/`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                if (response.ok) {
+                    showToast('Exam deleted successfully');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('Could not delete exam', 'error');
+            }
+        }
+
+        examDepartmentSelect.addEventListener('change', (event) => {
+            syncExamSemesters(event.target.value);
+        });
+
+        examForm.onsubmit = async (event) => {
+            event.preventDefault();
+            const payload = {
+                subject: examSubjectInput.value.toUpperCase(),
+                program: examDepartmentSelect.value,
+                semester: examSemesterSelect.value,
+                date: examDateInput.value,
+                start_time: examStartTimeInput.value,
+                end_time: examEndTimeInput.value
+            };
+
+            const url = examEditId ? `/api/exams/${examEditId}/` : '/api/exams/';
+            const method = examEditId ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    showToast('Exam schedule updated');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const responsePayload = await response.json().catch(() => ({}));
+                    showToast(extractApiError(responsePayload) || 'Validation failed. Please review the exam details.', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('System execution error', 'error');
+            }
         };
 
-        const url = editId ? `/api/exams/${editId}/` : '/api/exams/';
-        const method = editId ? 'PUT' : 'POST';
+        window.openModal = openExamModal;
+        window.closeModal = closeExamModal;
+        window.handleEdit = handleExamEdit;
+        window.handleDelete = handleExamDelete;
 
-        try {
-            const resp = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify(data)
-            });
-            if (resp.ok) {
-                showToast('Exam schedule updated');
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showToast('Validation failed. Check your date/time values.', 'error');
-            }
-        } catch (e) {
-            console.error(e);
-            showToast('System execution error', 'error');
-        }
-    };
-
-    async function handleDelete(id) {
-        const confirmed = await showConfirm(
-            'Delete Exam?',
-            'Are you sure? This will also remove any seating plans for this exam.',
-            'Delete'
-        );
-        if (!confirmed) return;
-        try {
-            const res = await fetch(`/api/exams/${id}/`, {
-                method: 'DELETE',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-            });
-            if (res.ok) {
-                showToast('Exam deleted successfully');
-                setTimeout(() => location.reload(), 1000);
-            }
-        } catch (e) {
-            console.error(e);
-            showToast('Could not delete exam', 'error');
-        }
-    }
+        ensureDepartmentsLoaded();
+    })();
 </script>
 {% endblock %}
 {% endblock %}

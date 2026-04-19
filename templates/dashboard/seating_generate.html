@@ -8,8 +8,7 @@
     <div class="text-center space-y-4">
 
         <h1 class="text-5xl font-black text-slate-900 tracking-tightest leading-tight">Create Seating Plan</h1>
-        <p class="text-lg text-slate-500 font-medium max-w-2xl mx-auto italic">Automatically arrange students in rooms
-            while keeping departments separate.</p>
+        <p class="text-lg text-slate-500 font-medium max-w-2xl mx-auto italic">Automatically arrange grouped exams with safe multi-department orchestration.</p>
     </div>
 
     <!-- Planner Grid -->
@@ -33,12 +32,16 @@
                             {% for exam in exams %}
                             <label
                                 class="relative flex items-center p-5 bg-slate-50 border-2 border-transparent rounded-2xl cursor-pointer hover:bg-slate-100 group transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50">
-                                <input type="checkbox" name="examIds" value="{{ exam.id }}" class="hidden peer">
+                                <input
+                                    type="radio"
+                                    name="examId"
+                                    value="{{ exam.id }}"
+                                    class="hidden peer">
                                 <div class="flex-1">
                                     <p
                                         class="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors uppercase leading-none">
                                         {{ exam.subject }}</p>
-                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ exam.department.name }} • {{ exam.semester.name }}</p>
+                                    <p class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{{ exam.display_programs }} • {{ exam.display_semesters }} • {{ exam.get_exam_type_display }}</p>
                                 </div>
                                 <div
                                     class="w-6 h-6 rounded-full border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 group-hover:border-emerald-400 flex items-center justify-center transition-all">
@@ -122,7 +125,7 @@
                                 <p
                                     class="text-xs font-black uppercase tracking-widest text-slate-200 tracking-widest text-emerald-400">
                                     System Status</p>
-                                <p id="poolStatus" class="text-[10px] text-slate-400 mt-1 italic">Ready for multi-department planning.</p>
+                                <p id="poolStatus" class="text-[10px] text-slate-400 mt-1 italic">Ready for grouped exam orchestration.</p>
                             </div>
                         </div>
 
@@ -178,31 +181,55 @@
 
 {% block extra_js %}
 <script>
-    const form = document.getElementById('generateForm');
-    const overlay = document.getElementById('loadingOverlay');
-    const loadMsg = document.getElementById('loadingMsg');
-    const successCard = document.getElementById('successCard');
+    const seatingForm = document.getElementById('generateForm');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMsg');
+    const seatingSuccessCard = document.getElementById('successCard');
+    const poolStatus = document.getElementById('poolStatus');
+    let selectedExamId = null;
+    let selectedRooms = [];
 
-    form.onsubmit = async (e) => {
+    function syncSeatingSelections() {
+        const selectedExamInput = seatingForm.querySelector('input[name="examId"]:checked');
+        selectedExamId = selectedExamInput ? Number(selectedExamInput.value) : null;
+        selectedRooms = Array.from(
+            seatingForm.querySelectorAll('input[name="roomIds"]:checked'),
+            (input) => Number(input.value)
+        );
+        poolStatus.innerText = selectedExamId
+            ? 'Ready to generate a grouped seating plan.'
+            : 'Ready for grouped exam orchestration.';
+    }
+
+    seatingForm.addEventListener('change', (event) => {
+        if (event.target.matches('input[name="examId"], input[name="roomIds"]')) {
+            syncSeatingSelections();
+        }
+    });
+
+    seatingForm.onsubmit = async (e) => {
         e.preventDefault();
+        syncSeatingSelections();
 
-        const formData = new FormData(form);
-        const data = {
-            examIds: Array.from(formData.getAll('examIds')),
-            roomIds: Array.from(formData.getAll('roomIds'))
-        };
+        console.log('Exam:', selectedExamId);
+        console.log('Rooms:', selectedRooms);
 
-        if (data.examIds.length === 0 || data.roomIds.length === 0) {
-            showToast('Select at least one exam and one room.', 'error');
+        if (!selectedExamId || selectedRooms.length === 0) {
+            showToast('Select one exam and at least one room.', 'error');
             return;
         }
 
-        overlay.classList.remove('hidden');
+        const payload = {
+            exam_id: selectedExamId,
+            rooms: selectedRooms,
+        };
+
+        loadingOverlay.classList.remove('hidden');
 
         // Simulation headers
         const startupSteps = ["Syncing Timetable...", "Grouping Departments...", "Initializing Engine..."];
         for (let s of startupSteps) {
-            loadMsg.innerText = s;
+            loadingMessage.innerText = s;
             await new Promise(r => setTimeout(r, 500));
         }
 
@@ -213,7 +240,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -221,41 +248,48 @@
             if (response.ok) {
                 // PHASE 5: Simulation of room-filling (Notifications)
                 // Speed up for many rooms to keep total time within 2-3 seconds
-                const delay = result.logs.length > 5 ? 100 : 500;
-                for (let log of result.logs) {
-                    loadMsg.innerText = log;
+                const logs = Array.isArray(result.logs) ? result.logs : [];
+                const delay = logs.length > 5 ? 100 : 500;
+                for (let log of logs) {
+                    loadingMessage.innerText = log;
                     await new Promise(r => setTimeout(r, delay));
                 }
 
-                overlay.classList.add('hidden');
-                successCard.classList.remove('hidden');
-                form.classList.add('opacity-50', 'pointer-events-none');
+                loadingOverlay.classList.add('hidden');
+                seatingSuccessCard.classList.remove('hidden');
+                seatingForm.classList.add('opacity-50', 'pointer-events-none');
+                poolStatus.innerText = `${result.metrics.allocated} students placed for ${result.exam_type}.`;
 
                 // PHASE 8: Display Global metrics
                 const statusList = document.getElementById('statusList');
-                statusList.innerHTML = `
-                    <div class="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] space-y-4 mb-6">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black uppercase text-slate-500">Total Pooled</span>
-                            <span class="text-md font-black text-white tabular-nums">${result.metrics.total}</span>
+                if (statusList) {
+                    statusList.innerHTML = `
+                        <div class="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] space-y-4 mb-6">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-black uppercase text-slate-500">Total Pooled</span>
+                                <span class="text-md font-black text-white tabular-nums">${result.metrics.total}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-black uppercase text-emerald-400">Allocated</span>
+                                <span class="text-md font-black text-white tabular-nums">${result.metrics.allocated}</span>
+                            </div>
+                            <div class="flex items-center justify-between border-t border-white/5 pt-2">
+                                <span class="text-[10px] font-black uppercase text-slate-500">Remaining</span>
+                                <span class="text-md font-black text-slate-400 tabular-nums">${result.metrics.remaining}</span>
+                            </div>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black uppercase text-emerald-400">Allocated</span>
-                            <span class="text-md font-black text-white tabular-nums">${result.metrics.allocated}</span>
-                        </div>
-                        <div class="flex items-center justify-between border-t border-white/5 pt-2">
-                            <span class="text-[10px] font-black uppercase text-slate-500">Remaining</span>
-                            <span class="text-md font-black text-slate-400 tabular-nums">${result.metrics.remaining}</span>
-                        </div>
-                    </div>
-                ` + statusList.innerHTML;
+                    ` + statusList.innerHTML;
+                }
             } else {
-                overlay.classList.add('hidden');
+                loadingOverlay.classList.add('hidden');
+                poolStatus.innerText = result.message || 'Unable to generate seating plan.';
                 showToast(result.message || 'Error creating plan', 'error');
             }
         } catch (error) {
-            overlay.classList.add('hidden');
+            loadingOverlay.classList.add('hidden');
             console.error(error);
+            poolStatus.innerText = 'Could not create seating plan.';
+            showToast('Could not create seating plan', 'error');
         }
     }
 </script>

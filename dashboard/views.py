@@ -4,7 +4,8 @@ from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.db.models import Count, Q, Sum
-from api.models import Student, Room, Exam, Seating, Attendance, Department, Semester
+from collections import defaultdict
+from api.models import Student, Room, Exam, Seating, Attendance, Program, Enrollment
 from .utils import render_to_pdf
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -34,7 +35,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         for s in latest_students:
             activities.append({
                 'title': 'Students Added',
-                'description': f'Added {s.name} ({s.university_id})',
+                'description': f'Added {s.name} ({s.reg_no})',
                 'time': s.created_at,
                 'icon': 'user-plus',
                 'color': 'blue'
@@ -42,8 +43,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             
         # Latest 3 Seating Plans (Distinct exams)
         latest_seating = Seating.objects.all().values('exam', 'created_at').annotate(cnt=Count('id')).order_by('-created_at')[:3]
+        exam_map = Exam.objects.in_bulk([item['exam'] for item in latest_seating])
         for se in latest_seating:
-            exam = Exam.objects.get(id=se['exam'])
+            exam = exam_map.get(se['exam'])
+            if not exam:
+                continue
             activities.append({
                 'title': 'Plan Created',
                 'description': f'Seating arrangement for {exam.subject} ready.',
@@ -68,9 +72,10 @@ class StudentListView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['students'] = Student.objects.all().select_related('department', 'semester').order_by('-created_at')
-        context['departments'] = Department.objects.all().order_by('name')
-        context['semesters'] = Semester.objects.all().order_by('name')
+        # We prefetch enrollments to show current academic status
+        context['students'] = Student.objects.all().prefetch_related('enrollments__program').order_by('-created_at')
+        context['programs'] = Program.objects.all().order_by('name')
+        context['departments'] = context['programs']
         return context
 
 class AcademicSetupView(LoginRequiredMixin, TemplateView):
@@ -79,7 +84,8 @@ class AcademicSetupView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['departments'] = Department.objects.all().prefetch_related('semesters').order_by('name')
+        context['programs'] = Program.objects.all().order_by('-created_at')
+        context['departments'] = context['programs']
         return context
 
 class RoomListView(LoginRequiredMixin, TemplateView):
@@ -95,18 +101,55 @@ class RoomListView(LoginRequiredMixin, TemplateView):
         
         # Build layout data for visual map
         layouts = {}
+        all_seatings = list(
+            Seating.objects.filter(room__in=rooms)
+            .select_related('student', 'room', 'exam__program', 'exam_group__program')
+            .order_by('room_id', 'row', 'seat_position')
+        )
+        student_ids = {seat.student_id for seat in all_seatings}
+        program_ids = {
+            seat.effective_program.id
+            for seat in all_seatings
+            if seat.effective_program is not None
+        }
+        semesters = {
+            seat.effective_semester
+            for seat in all_seatings
+            if seat.effective_semester is not None
+        }
+        enrollment_map = {}
+        if student_ids and program_ids and semesters:
+            enrollments = Enrollment.objects.filter(
+                student_id__in=student_ids,
+                program_id__in=program_ids,
+                semester__in=semesters,
+            ).select_related('program')
+            enrollment_map = {
+                (enrollment.student_id, enrollment.program_id, enrollment.semester): enrollment
+                for enrollment in enrollments
+            }
+        seatings_by_room = defaultdict(list)
+        for seating in all_seatings:
+            seatings_by_room[seating.room_id].append(seating)
+
         for room in rooms:
             room_seats = []
-            # Fetch latest seating for this room if any
-            seatings = Seating.objects.filter(room=room).select_related('student', 'student__department')
             seat_map = {} # Key: "row-section-index"
-            for s in seatings:
-                # We need to extract section and index from 'seat_position' which looks like "Left Seat 1"
+            for s in seatings_by_room.get(room.id, []):
                 try:
                     parts = s.seat_position.split(' ')
                     sec = parts[0]
                     idx = int(parts[2]) - 1
+
+                    effective_program = s.effective_program
+                    effective_semester = s.effective_semester
+                    enrollment = enrollment_map.get((
+                        s.student_id,
+                        effective_program.id if effective_program else None,
+                        effective_semester,
+                    ))
                     key = f"{s.row}-{sec}-{idx}"
+                    s.enrollment_info = enrollment # Attach for template
                     seat_map[key] = s
                 except: continue
 
@@ -119,8 +162,8 @@ class RoomListView(LoginRequiredMixin, TemplateView):
                         sec_seats.append({
                             'occupied': s_data is not None,
                             'student_name': s_data.student.name if s_data else None,
-                            'student_usn': s_data.student.university_id if s_data else None,
-                            'dept': s_data.student.department.name if s_data and s_data.student.department else None,
+                            'student_usn': s_data.student.reg_no if s_data else None,
+                            'dept': s_data.enrollment_info.program.name if s_data and s_data.enrollment_info else 'N/A',
                             'seat_num': f"{sec_name[0]}{i+1}"
                         })
                     row_data['sections'].append({'name': sec_name, 'seats': sec_seats})
@@ -136,9 +179,9 @@ class ExamListView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['exams'] = Exam.objects.all().select_related('department', 'semester').order_by('-date')
-        context['departments'] = Department.objects.all().order_by('name')
-        context['semesters'] = Semester.objects.all().order_by('name')
+        context['exams'] = Exam.objects.all().select_related('program').prefetch_related('groups__program').order_by('-date')
+        context['programs'] = Program.objects.all().order_by('name')
+        context['departments'] = context['programs']
         return context
 
 class SeatingGenerateView(LoginRequiredMixin, TemplateView):
@@ -147,11 +190,10 @@ class SeatingGenerateView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['exams'] = Exam.objects.all().select_related('department', 'semester').order_by('-date')
+        context['exams'] = Exam.objects.all().select_related('program').prefetch_related('groups__program').order_by('-date')
         context['rooms'] = Room.objects.all().order_by('room_number')
         context['student_count'] = Student.objects.count()
-        context['departments'] = Department.objects.all().order_by('name')
-        context['semesters'] = Semester.objects.all().order_by('name')
+        context['programs'] = Program.objects.all().order_by('name')
         return context
 
 class AttendanceListView(LoginRequiredMixin, TemplateView):
@@ -187,11 +229,33 @@ class GenerateAttendanceView(LoginRequiredMixin, TemplateView):
             context['error'] = "No exam selected."
             return context
         
-        exam = Exam.objects.get(id=exam_id)
+        exam = Exam.objects.select_related('program').prefetch_related('groups__program').get(id=exam_id)
         context['exam'] = exam
         
         # Get all seats for this exam
-        seats = Seating.objects.filter(exam=exam).select_related('room', 'student', 'student__department', 'student__semester').order_by('room__room_number', 'student__department__name', 'student__semester__name', 'row', 'seat_position')
+        seats = (
+            Seating.objects.filter(exam=exam)
+            .select_related('room', 'student', 'exam_group__program', 'exam__program')
+            .order_by('room__room_number', 'row', 'seat_position')
+        )
+        program_ids = {
+            seat.effective_program.id
+            for seat in seats
+            if seat.effective_program is not None
+        }
+        semesters = {
+            seat.effective_semester
+            for seat in seats
+            if seat.effective_semester is not None
+        }
+        enrollment_map = {
+            (enrollment.student_id, enrollment.program_id, enrollment.semester): enrollment
+            for enrollment in Enrollment.objects.filter(
+                student_id__in=seats.values_list('student_id', flat=True),
+                program_id__in=program_ids,
+                semester__in=semesters,
+            ).select_related('program')
+        }
         
         # Group by Room -> (Course, Semester)
         grouped_data = {}
@@ -203,13 +267,27 @@ class GenerateAttendanceView(LoginRequiredMixin, TemplateView):
                     'sheets': {}
                 }
             
+            # Fetch enrollment for this student for the exam's program/semester
+            effective_program = seat.effective_program
+            effective_semester = seat.effective_semester
+            enrollment = enrollment_map.get((
+                seat.student_id,
+                effective_program.id if effective_program else None,
+                effective_semester,
+            ))
+            
             # Key for course-wise sheet
-            sheet_key = (seat.student.department.name if seat.student.department else "N/A", 
-                         seat.student.semester.name if seat.student.semester else "N/A")
+            sheet_key = (
+                enrollment.program.name if enrollment else "N/A",
+                f"SEM {enrollment.semester}" if enrollment else "N/A",
+                seat.effective_subject or exam.subject,
+            )
+            
             if sheet_key not in grouped_data[room_id]['sheets']:
                 grouped_data[room_id]['sheets'][sheet_key] = []
             
-            # Map the seat mapping for official register
+            # Attach enrollment info to seat for template
+            seat.enrollment_info = enrollment
             grouped_data[room_id]['sheets'][sheet_key].append(seat)
         
         # Sort sheets for easier template rendering: List of (room_info, [ (course_sem, students) ])
@@ -221,6 +299,7 @@ class GenerateAttendanceView(LoginRequiredMixin, TemplateView):
                 sheets_list.append({
                     'course': s_key[0],
                     'semester': s_key[1],
+                    'subject': s_key[2],
                     'seats': room_info['sheets'][s_key]
                 })
             final_rooms.append({

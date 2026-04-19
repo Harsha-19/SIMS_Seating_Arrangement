@@ -45,6 +45,7 @@
             <button onclick="setSemTypeFilter('ODD')" id="sem-type-odd" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Odd</button>
             <button onclick="setSemTypeFilter('EVEN')" id="sem-type-even" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Even</button>
         </div>
+        
 
         <div class="flex items-center gap-4">
             <select id="filter-dept" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
@@ -53,8 +54,14 @@
                 <option value="{{ dept.id }}">{{ dept.name }}</option>
                 {% endfor %}
             </select>
-            <select id="filter-sem" disabled class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
-                <option value="">Select Dept First</option>
+            <select id="filter-sem" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                <option value="">All Semesters</option>
+                <option value="1">Sem 1</option>
+                <option value="2">Sem 2</option>
+                <option value="3">Sem 3</option>
+                <option value="4">Sem 4</option>
+                <option value="5">Sem 5</option>
+                <option value="6">Sem 6</option>
             </select>
 
             <div class="h-8 w-px bg-slate-100 mx-2 hidden md:block"></div>
@@ -63,7 +70,7 @@
                 <i data-lucide="filter" class="w-3.5 h-3.5 text-slate-400"></i>
                 <select id="sort-field" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
                     <option value="name">Name</option>
-                    <option value="university_id">University ID</option>
+                    <option value="reg_no">Registration No</option>
                 </select>
                 <select id="sort-order" class="bg-slate-50 border border-slate-200 rounded-xl py-2 px-4 text-xs font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
                     <option value="asc">Ascending</option>
@@ -98,7 +105,7 @@
                         <th class="px-8 py-5 w-4">
                             <input type="checkbox" id="selectAllItems" onchange="toggleAll(this.checked)" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer">
                         </th>
-                        <th class="px-2 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">University ID</th>
+                        <th class="px-2 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Reg No</th>
                         <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</th>
                         <th class="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Department & Semester</th>
                         <th class="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
@@ -108,20 +115,22 @@
                     {% for student in students %}
                     <tr onclick="toggleRow(event, this)" class="hover:bg-blue-50/30 transition-all cursor-pointer group table-row-item" data-id="{{ student.university_id }}">
                         <td class="px-8 py-5">
-                            <input type="checkbox" onclick="event.stopPropagation()" onchange="updateSelectedCount()" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="{{ student.university_id }}">
+                            <input type="checkbox" onclick="event.stopPropagation()" onchange="updateSelectedCount()" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="{{ student.reg_no }}">
                         </td>
                         <td class="px-2 py-5">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
-                                    {{ student.university_id|slice:":2" }}
+                                    {{ student.reg_no|slice:":2" }}
                                 </div>
-                                <span class="text-sm font-black text-slate-900 tracking-tight">{{ student.university_id }}</span>
+                                <span class="text-sm font-black text-slate-900 tracking-tight">{{ student.reg_no }}</span>
                             </div>
                         </td>
                         <td class="px-8 py-5 font-semibold text-slate-900">{{ student.name }}</td>
                         <td class="px-8 py-5">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
-                                {{ student.department.name }} • {{ student.semester.name }}
+                                {% with student.enrollments.first as enrollment %}
+                                    {{ enrollment.program.name }} • SEM {{ enrollment.semester }}
+                                {% endwith %}
                             </span>
                         </td>
                         <td class="px-8 py-5 text-right">
@@ -129,7 +138,7 @@
                                 <button onclick="openModal('{{ student.id|escapejs }}', '{{ student.university_id|escapejs }}', '{{ student.name|escapejs }}', '{{ student.department.id|escapejs }}', '{{ student.semester.id|escapejs }}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="handleDelete('{{ student.university_id|escapejs }}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                                <button onclick="handleDelete('{{ student.reg_no|escapejs }}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -184,8 +193,8 @@
         </div>
         <form id="studentForm" class="space-y-6">
             <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">University ID</label>
-                <input type="text" id="mUsn" name="university_id" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Registration Number</label>
+                <input type="text" id="mUsn" name="reg_no" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
             </div>
             <div class="space-y-2">
                 <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Full Name</label>
@@ -195,16 +204,22 @@
                 <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Department</label>
                     <select id="mCourse" name="department" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
-                        <option value="">Select Department</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        <option value="">Select Program</option>
+                        {% for prog in programs %}
+                        <option value="{{ prog.id }}">{{ prog.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Semester</label>
-                    <select id="mSemester" name="semester" disabled required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all disabled:opacity-50">
-                        <option value="">Select Department First</option>
+                    <select id="mSemester" name="semester" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-5 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all">
+                        <option value="">Select Semester</option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
                     </select>
                 </div>
             </div>
@@ -230,14 +245,13 @@
     const sortFieldSelect = document.getElementById('sort-field');
     const sortOrderSelect = document.getElementById('sort-order');
     
-    // Wire up event handlers for instant client-side reactivity
-    studentSearch.oninput = () => { currentPage = 1; renderCurrentPage(); };
+    // Wire up event handlers for server-backed filtering
+    studentSearch.oninput = () => { currentPage = 1; scheduleRefreshList(); };
     filterDept.onchange = (e) => { 
-        syncFilterSemesters(e.target.value); 
         currentPage = 1; 
-        renderCurrentPage(); 
+        refreshList(); 
     };
-    filterSem.onchange = () => { currentPage = 1; renderCurrentPage(); };
+    filterSem.onchange = () => { currentPage = 1; refreshList(); };
     sortFieldSelect.onchange = (e) => { sortField = e.target.value; currentPage = 1; renderCurrentPage(); };
     sortOrderSelect.onchange = (e) => { sortOrder = e.target.value; currentPage = 1; renderCurrentPage(); };
 
@@ -254,6 +268,9 @@
     let sortField = 'name';
     let sortOrder = 'asc';
     let semTypeFilter = '';
+    let semesterCounts = { odd: 0, even: 0, filtered: 0 };
+    let refreshDebounce;
+    let activeListController = null;
     const ITEMS_PER_PAGE = 20;
 
     function setSemTypeFilter(type) {
@@ -276,8 +293,14 @@
         });
         
         currentPage = 1;
-        renderCurrentPage();
+        refreshList();
     }
+
+    function scheduleRefreshList() {
+        window.clearTimeout(refreshDebounce);
+        refreshDebounce = window.setTimeout(() => refreshList(), 250);
+    }
+
 
     function normalizeStudents(raw) {
         if (Array.isArray(raw)) return raw;
@@ -287,48 +310,65 @@
     }
 
     function renderRows(studentsPage) {
-        tableBody.innerHTML = '';
+        const el = document.getElementById('items-table-body');
+        if (!el) {
+            console.error("Missing element: items-table-body");
+            return;
+        }
+
+        el.innerHTML = ''; // Safe use after check
+        
         if (!Array.isArray(studentsPage) || studentsPage.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic">No students found</td></tr>`;
+            let msg = "No students found";
+            if (semTypeFilter === 'EVEN') msg = "No EVEN semester students found (Sem 2,4,6)";
+            if (semTypeFilter === 'ODD') msg = "No ODD semester students found (Sem 1,3,5)";
+            el.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic font-medium uppercase tracking-[0.2em]">${msg}</td></tr>`;
             return;
         }
 
         studentsPage.forEach(s => {
-            const deptName = s.department_info ? s.department_info.name : 'Unknown';
-            const semName = s.semester_info ? s.semester_info.name : 'Unknown';
-            const isChecked = selectedIds.has(s.university_id);
+            const enrollment = (s.enrollments && s.enrollments.length > 0) ? s.enrollments[0] : null;
+            const progName = enrollment && enrollment.program_info ? enrollment.program_info.name : 'Unknown';
+            const semNum = enrollment ? enrollment.semester : '?';
+            const isChecked = selectedIds.has(s.reg_no);
             
-            tableBody.innerHTML += `
-                <tr onclick="toggleRow(event, this)" class="hover:bg-blue-50/30 transition-all group table-row-item" data-id="${s.university_id}">
-                    <td class="px-8 py-5">
-                        <input type="checkbox" onchange="toggleSelection('${s.university_id}', this.checked)" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="${s.university_id}" onclick="event.stopPropagation()">
-                    </td>
-                    <td class="px-2 py-5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
-                                ${String(s.university_id || '').slice(0, 2)}
-                            </div>
-                            <span class="text-sm font-black text-slate-900 tracking-tight">${s.university_id || ''}</span>
+            const row = document.createElement('tr');
+            row.onclick = (e) => toggleRow(e, row);
+            row.className = "hover:bg-blue-50/30 transition-all group table-row-item";
+            row.dataset.id = s.reg_no;
+            
+            row.innerHTML = `
+                <td class="px-8 py-5">
+                    <input type="checkbox" onchange="toggleSelection('${s.reg_no}', this.checked)" ${isChecked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer item-checkbox" value="${s.reg_no}" onclick="event.stopPropagation()">
+                </td>
+                <td class="px-2 py-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-black text-[10px] border border-blue-100 uppercase">
+                            ${String(s.reg_no || '').slice(0, 2)}
                         </div>
-                    </td>
-                    <td class="px-8 py-5 font-semibold text-slate-900">${s.name || ''}</td>
-                    <td class="px-8 py-5">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
-                            ${deptName} • ${semName}
-                        </span>
-                    </td>
-                    <td class="px-8 py-5 text-right">
-                        <div class="flex items-center justify-end gap-1">
-                            <button onclick="openModal('${s.id}', '${s.university_id}', '${s.name}', '${s.department}', '${s.semester}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
-                                <i data-lucide="edit-3" class="w-4 h-4"></i>
-                            </button>
-                            <button onclick="handleDelete('${s.university_id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>`;
+                        <span class="text-sm font-black text-slate-900 tracking-tight">${s.reg_no || ''}</span>
+                    </div>
+                </td>
+                <td class="px-8 py-5 font-semibold text-slate-900">${s.name || ''}</td>
+                <td class="px-8 py-5">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-widest bg-slate-100 text-slate-700 border border-slate-200/60 uppercase">
+                        ${progName} • SEM ${semNum}
+                    </span>
+                </td>
+                <td class="px-8 py-5 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        <button onclick="openModal('${s.id}', '${s.reg_no}', '${s.name}', '${enrollment ? enrollment.program : ''}', '${semNum}')" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="handleDelete('${s.reg_no}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm active:scale-95">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </td>`;
+            el.appendChild(row);
         });
+        
+        if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
     }
 
     function getPaginationRange(current, total) {
@@ -358,7 +398,12 @@
     }
 
     function renderPageNumbers(totalPages) {
-        pageNumbers.innerHTML = '';
+        const el = document.getElementById('pageNumbers');
+        if (!el) {
+            console.error("Missing element: pageNumbers");
+            return;
+        }
+        el.innerHTML = '';
         
         // Mobile special case: show only current page
         const isMobile = window.innerWidth < 768;
@@ -369,7 +414,7 @@
                 const dot = document.createElement('span');
                 dot.className = 'px-2 text-slate-400 font-black cursor-default select-none';
                 dot.innerText = '...';
-                pageNumbers.appendChild(dot);
+                el.appendChild(dot);
             } else {
                 const btn = document.createElement('button');
                 btn.onclick = () => goToPage(page);
@@ -380,7 +425,7 @@
                 
                 btn.className = `min-w-[36px] h-9 flex items-center justify-center rounded-xl text-xs font-bold transition-all shadow-sm ${hiddenClasses} ${isActive ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
                 btn.innerText = page;
-                pageNumbers.appendChild(btn);
+                el.appendChild(btn);
             }
         });
     }
@@ -388,42 +433,35 @@
     window.onresize = () => renderPageNumbers(Math.ceil((sortField ? document.querySelectorAll('#items-table-body tr').length : allStudents.length) / ITEMS_PER_PAGE));
 
     function renderCurrentPage() {
-        const students = Array.isArray(allStudents) ? allStudents : [];
-        const searchVal = studentSearch.value.toLowerCase();
-        const deptId = filterDept.value;
-        const semId = filterSem.value;
-
-        // Dataset Integrity Pipeline: Source of Truth (allStudents) -> Filtered -> Paginated
-        const filteredStudents = students.filter(s => {
-            const name = (s.name || '').toLowerCase();
-            const usn = (s.university_id || '').toLowerCase();
-            
-            const matchesSearch = !searchVal || name.includes(searchVal) || usn.includes(searchVal);
-            const matchesDept = !deptId || s.department == deptId;
-            const matchesSem = !semId || s.semester == semId;
-            const matchesType = !semTypeFilter || s.sem_type == semTypeFilter;
-            
-            return matchesSearch && matchesDept && matchesSem && matchesType;
-        });
-
-        // Update Counts for the Header Subtitle
-        const oddCount = students.filter(s => s.sem_type === 'ODD').length;
-        const evenCount = students.filter(s => s.sem_type === 'EVEN').length;
-        
-        const countSubtitle = document.querySelector('p.text-sm.text-slate-500.mt-1');
-        if (countSubtitle) {
-            countSubtitle.innerHTML = `Showing <span id="totalCountNumber" class="font-bold text-slate-900">${filteredStudents.length}</span> students. <span class="mx-2 text-slate-300">|</span> <span class="text-xs">ODD: ${oddCount}</span> <span class="mx-1 text-slate-300">•</span> <span class="text-xs">EVEN: ${evenCount}</span>`;
+        const el = document.getElementById('items-table-body');
+        if (!el) {
+            console.error("Missing element: items-table-body");
+            return;
         }
 
-        // Sorting Pipeline
+        const students = Array.isArray(allStudents) ? allStudents : [];
+        const filteredStudents = students;
+        const oddCount = Number(semesterCounts.odd || 0);
+        const evenCount = Number(semesterCounts.even || 0);
+
+        const countSubtitle = document.querySelector('p.text-sm.text-slate-500.mt-1');
+        if (countSubtitle) {
+            countSubtitle.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-slate-500">Showing <span id="totalCountNumber" class="font-bold text-slate-900">${filteredStudents.length}</span> students.</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100/50">ODD: ${oddCount}</span>
+                    <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100/50">EVEN: ${evenCount}</span>
+                </div>
+            `;
+        }
+
         const sortedStudents = [...filteredStudents].sort((a, b) => {
             if (!sortField) return 0;
             let valA = a[sortField] || '';
             let valB = b[sortField] || '';
-
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
-
             if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
             if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
             return 0;
@@ -442,18 +480,23 @@
 
         const showingStart = sortedStudents.length === 0 ? 0 : indexOfFirst + 1;
         const showingEnd = Math.min(indexOfLast, sortedStudents.length);
-        paginationInfo.innerHTML = `Showing <span class="text-slate-900">${showingStart} to ${showingEnd}</span> of ${sortedStudents.length} results`;
+        const pInfo = document.getElementById('paginationInfo');
+        if (pInfo) {
+            pInfo.innerHTML = `Showing <span class="text-slate-900">${showingStart} to ${showingEnd}</span> of ${sortedStudents.length} results`;
+        }
 
-        // Update Total Count in Header
         const headerCount = document.getElementById('totalCountNumber');
         if (headerCount) headerCount.innerText = sortedStudents.length;
 
-        prevPageBtn.disabled = currentPage <= 1;
-        nextPageBtn.disabled = currentPage >= totalPages;
-        prevPageBtn.classList.toggle('text-slate-300', currentPage <= 1);
-        prevPageBtn.classList.toggle('cursor-not-allowed', currentPage <= 1);
+        const pBtn = document.getElementById('prevPageBtn');
+        if (pBtn) {
+            pBtn.disabled = currentPage <= 1;
+        }
+        const nBtn = document.getElementById('nextPageBtn');
+        if (nBtn) {
+            nBtn.disabled = currentPage >= totalPages;
+        }
 
-        // Update Clear Data button state
         const clearBtn = document.getElementById('clearDataBtn');
         if (clearBtn) clearBtn.disabled = students.length === 0;
     }
@@ -478,87 +521,85 @@
         }
     }
 
-    // Modal Semester Sync
-    async function syncSemesters(deptId, currentSemId = null) {
-        if (!deptId) {
-            mSem.innerHTML = '<option value="">Select Department First</option>';
-            mSem.disabled = true;
-            return;
-        }
-        mSem.disabled = true;
-        mSem.innerHTML = '<option value="">Loading...</option>';
-        try {
-            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
-            const data = await resp.json();
-            mSem.innerHTML = '';
-            data.forEach(sem => {
-                const opt = document.createElement('option');
-                opt.value = sem.id;
-                opt.textContent = sem.name;
-                if (currentSemId && sem.id == currentSemId) opt.selected = true;
-                mSem.appendChild(opt);
-            });
-            mSem.disabled = false;
-        } catch (e) { console.error(e); }
-    }
-
-    // Filter Semester Sync
-    async function syncFilterSemesters(deptId) {
-        if (!deptId) {
-            filterSem.innerHTML = '<option value="">All Semesters</option>';
-            filterSem.disabled = true;
-            return;
-        }
-        filterSem.disabled = true;
-        filterSem.innerHTML = '<option value="">Loading...</option>';
-        try {
-            const resp = await fetch(`/api/semesters/?department_id=${deptId}`);
-            const data = await resp.json();
-            filterSem.innerHTML = '<option value="">All Semesters</option>';
-            data.forEach(sem => {
-                const opt = document.createElement('option');
-                opt.value = sem.id;
-                opt.textContent = sem.name;
-                filterSem.appendChild(opt);
-            });
-            filterSem.disabled = false;
-        } catch (e) { console.error(e); }
-    }
+    // Semester sync is now static
 
     // Main Filter Logic
     async function refreshList() {
-        tableBody.style.opacity = '0.5';
+        const el = document.getElementById('items-table-body');
+        if (!el) return;
+
+        if (activeListController) {
+            activeListController.abort();
+        }
+        activeListController = new AbortController();
+
+        el.style.opacity = '0.5';
         try {
-            // Fetch the COMPLETE dataset to ensure integrity across pagination & search
-            const resp = await fetch(`/api/students/?page_size=10000`);
+            const params = new URLSearchParams();
+            const searchValue = studentSearch ? studentSearch.value.trim() : '';
+            const programId = filterDept ? filterDept.value : '';
+            const semesterValue = filterSem ? filterSem.value : '';
+
+            if (searchValue) params.set('search', searchValue);
+            if (programId) params.set('program_id', programId);
+            if (semesterValue) params.set('semester', semesterValue);
+            if (semTypeFilter) params.set('semester_type', semTypeFilter);
+
+            const queryString = params.toString();
+            const url = queryString ? `/api/students/?${queryString}` : '/api/students/';
+            const resp = await fetch(url, { signal: activeListController.signal });
+            if (!resp.ok) {
+                el.style.opacity = '1';
+                try {
+                    const err = await resp.json();
+                    console.error("API Failure:", err.error || err.message || "Unknown error");
+                } catch (e) {
+                    console.error("API returned non-JSON error (e.g. 500 HTML)");
+                }
+                return;
+            }
+
             const payload = await resp.json();
-            const normalizedStudents = normalizeStudents(payload);
-            allStudents = normalizedStudents;
-            tableBody.style.opacity = '1';
-            
-            // Re-render current page logic handles local filtering/pagination
-            renderCurrentPage();
-            lucide.createIcons();
-            // Clear selection on new fetch to maintain consistency with previous behavior
+            allStudents = normalizeStudents(payload);
+            semesterCounts = payload.counts || { odd: 0, even: 0, filtered: allStudents.length };
+            el.style.opacity = '1';
+
+            if (payload.warning) {
+                console.warn(payload.warning);
+            }
+            if (payload.invalid_enrollment_count) {
+                console.warn(`Invalid enrollment rows detected: ${payload.invalid_enrollment_count}`);
+            }
+
+            if (document.getElementById('items-table-body')) {
+                renderCurrentPage();
+            }
             clearSelection();
         } catch (e) {
-            console.error(e);
-            tableBody.style.opacity = '1';
+            if (e.name === 'AbortError') {
+                return;
+            }
+            console.error("Network or parsing error:", e);
+            if (el) {
+                el.style.opacity = '1';
+                el.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic">Unable to load students</td></tr>`;
+            }
             allStudents = [];
-            renderCurrentPage();
-            tableBody.innerHTML = `<tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 italic">Unable to load students</td></tr>`;
+            semesterCounts = { odd: 0, even: 0, filtered: 0 };
+            if (document.getElementById('items-table-body')) {
+                renderCurrentPage();
+            }
+        } finally {
+            activeListController = null;
         }
     }
-
-    mDept.onchange = (e) => syncSemesters(e.target.value);
-
     async function openModal(id = '', university_id = '', name = '', department = '', semester = '') {
         editId = id;
         document.getElementById('modalTitle').innerText = id ? 'Edit Student' : 'Add Student';
         document.getElementById('mUsn').value = university_id;
         document.getElementById('mName').value = name;
         mDept.value = department;
-        await syncSemesters(department, semester);
+        mSem.value = semester;
         modal.classList.remove('hidden');
     }
 
@@ -624,36 +665,37 @@
                 headers: { 'X-CSRFToken': '{{ csrf_token }}' },
                 body: formData
             });
+
+            if (!res.ok) {
+                const err = await res.json();
+                
+                // Show clean message (Rule 8)
+                const msg = err.error ? 
+                    `${err.error}. Found: ${err.odd || 0} ODD, ${err.even || 0} EVEN` :
+                    (err.message || 'Upload failed');
+                
+                showToast(msg, 'error');
+                
+                // Reset input and STOP (Rule 7)
+                if (event.target && event.target.value) event.target.value = '';
+                return; // 🚨 STOP HERE - PREVENT CASCADE
+            }
+
             const result = await res.json();
             
-            if (res.ok) {
-                if (result.status === 'mismatch') {
-                    const confirmed = await showConfirm(
-                        'Confirm Data Replacement',
-                        result.message,
-                        'Replace Data',
-                        true
-                    );
-                    if (confirmed) {
-                        // Re-upload with confirmation
-                        return handleBulkUpload(file, true);
-                    }
-                } else {
-                    showToast(result.message || 'Student list uploaded successfully');
-                    refreshList();
-                    // Update system mode indicator
-                    if (typeof updateSystemMode === 'function') updateSystemMode();
-                }
-            } else {
-                showToast(result.message || 'Failed to upload list', 'error');
-            }
+            // Standardized Feedback (total, odd, even from backend)
+            showToast(`✅ Upload Successful!\nTotal: ${result.total || 0} | ODD: ${result.odd || 0} | EVEN: ${result.even || 0}`);
+            
+            // Force Absolute UI Refresh (Rule 1)
+            setSemTypeFilter(''); // Reset filter to ALL after upload
+            allStudents = []; 
+            refreshList(); 
         } catch (e) {
             console.error(e);
             showToast('System error during upload', 'error');
         }
         
-        // Reset the input so it can be used again for the same file if needed
-        if (!(event instanceof File)) {
+        if (event.target && event.target.value) {
             event.target.value = '';
         }
     }
@@ -792,3 +834,5 @@
     });
 </script>
 {% endblock %}
+
+
