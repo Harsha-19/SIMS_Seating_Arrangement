@@ -1,0 +1,22 @@
+{
+  "exclude": [
+    "D:\\__pyrefly_virtual__",
+    "**/__pyrefly_virtual__/**",
+    "**/.pyrefly_virtual__inmemory/**",
+    "**/scratch/**",
+    "**/temp/**",
+    "**/node_modules/**"
+  ],
+  "extraPaths": [
+    "./backend"
+  ],
+  "reportMissingImports": false,
+  "reportUndefinedVariable": false,
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "executionEnvironments": [
+    {
+      "root": "./backend"
+    }
+  ]
+}

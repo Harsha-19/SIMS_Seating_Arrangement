@@ -1,68 +1,89 @@
-# SOUNDARYA INSTITUTE - Smart Institutional Management System (SIMS)
+# SIMS Seating Arrangement
 
-A professional, high-fidelity SaaS-grade dashboard constructed for the management of educational session data, including students, examination halls, schedules, and automated seating arrangements.
+This repository is organized as a full-stack project with a dedicated Django backend and a separate React/Vite frontend.
 
----
+## Structure
 
-## Primary Features
-
-- **Dynamic Student Management**: Reactive filtering by Department and Semester with live AJAX searching.
-- **Automated Seating Engine**: High-fidelity, row-by-row seating allocation with fixed `[3, 2, 3]` section filling patterns for exam halls.
-- **Academic Setup**: Configurable Departments and Semesters with dependent dropdown logic.
-- **Attendance Management**: Automated PDF/Print-ready attendance list generation based on seating plans.
-- **SaaS-Grade UI**: Modern dark/light mode aesthetics using Tailwind CSS and Lucide Icons.
-
----
-
-
-## Tech Stack
-
-- **Backend**: Python 3.x, Django 5.x, Django REST Framework (DRF).
-- **Frontend**: Vanilla JavaScript (AJAX/Fetch), Tailwind CSS (CDN), Lucide Icons.
-- **Database**: SQLite (Development) / PostgreSQL (Production ready).
-- **Environment**: Virtualenv (.venv).
-
----
-
-## How to Run the Project
-
-### 1. Repository Location
-
-Open your terminal and navigate to the project root directory:
-
-```bash
-cd "d:\My Things\PROJECTS\seating arrengement"
+```text
+project-root/
+├── backend/
+│   ├── api/
+│   ├── core/
+│   ├── scratch/
+│   ├── scripts/
+│   ├── seating/
+│   ├── seating_data/
+│   ├── .env
+│   ├── .env.example
+│   ├── db.sqlite3
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── run_migrations.bat
+│   └── runserver.bat
+├── frontend/
+│   ├── src/
+│   ├── .env
+│   ├── .env.example
+│   └── package.json
+├── README.md
+└── .gitignore
 ```
 
-### 2. Activate Virtual Environment
+## Backend
 
-Ensure you are using the local virtual environment to avoid dependency conflicts:
+Install Python dependencies from the backend folder:
 
 ```powershell
-.\.venv\Scripts\activate
+cd backend
+python -m pip install -r requirements.txt
 ```
 
-### 3. Initialize & Run Server
+Start Django on port `8000`:
 
-To start the internal development server, execute the following command **inside the project root folder** (where `manage.py` is located):
-
-```bash
-python manage.py runserver
+```powershell
+python manage.py runserver 127.0.0.1:8000
 ```
 
-### 4. Access the Platform
+Or use the helper batch file:
 
-Once the server is running, open your browser and go to:
+```powershell
+.\runserver.bat
+```
 
-- **Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **API Root**: [http://127.0.0.1:8000/api/](http://127.0.0.1:8000/api/)
+Apply migrations:
 
----
+```powershell
+.\run_migrations.bat
+```
 
+## Frontend
 
-## Administrative Access
+Install frontend dependencies:
 
-Login directly to the dashboard to begin managing institutional data:
+```powershell
+cd frontend
+npm install
+```
 
-- **Support Contact**: Harsha (`harshamt2005@gmail.com`)
-- **Main Office**: Soundarya Institute of Management and Science
+Start Vite on port `5173`:
+
+```powershell
+npm run dev
+```
+
+Build the frontend:
+
+```powershell
+npm run build
+```
+
+## Environment
+
+Backend configuration lives in `backend/.env`. Frontend API settings live in `frontend/.env`.
+
+Default local development URLs:
+
+- Backend: `http://127.0.0.1:8000`
+- Frontend: `http://127.0.0.1:5173`
+
+The frontend defaults to `/api` and Vite proxies API traffic to Django during development.
